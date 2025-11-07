@@ -44,7 +44,7 @@ export default function Home() {
           }
         }
       } catch (error) {
-        console.log("Erro ao verificar sessão:", error)
+        // Removed console.log of error
       }
 
       const authStatus = localStorage.getItem("isAuthenticated")
@@ -64,8 +64,7 @@ export default function Home() {
   }, [])
 
   const handleLogin = (user: { id: string; email: string; name: string; role: "admin" | "user" }) => {
-    console.log("Dados do usuário no handleLogin:", user)
-
+    // Removed console.log of user data
     setIsAuthenticated(true)
     setUserName(user.name)
     setUserRole(user.role)

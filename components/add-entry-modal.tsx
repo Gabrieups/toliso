@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createEntryAction } from "@/app/actions/entries"
+import { useAlertModal } from "@/hooks/use-alert-modal"
 
 interface AddEntryModalProps {
   isOpen: boolean
@@ -30,6 +31,7 @@ export function AddEntryModal({ isOpen, onClose, onAddEntry }: AddEntryModalProp
     amount: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const alertModal = useAlertModal()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,11 +58,17 @@ export function AddEntryModal({ isOpen, onClose, onAddEntry }: AddEntryModalProp
         onAddEntry()
         onClose()
       } else {
-        alert(result.error || "Erro ao criar pagamento")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao criar pagamento",
+        })
       }
     } catch (error) {
       console.error("Erro ao criar pagamento:", error)
-      alert("Erro ao criar pagamento")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao criar pagamento",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -119,12 +127,10 @@ export function AddEntryModal({ isOpen, onClose, onAddEntry }: AddEntryModalProp
                 placeholder="0,00"
                 value={formData.amount}
                 onChange={(e) => {
-                  // Permitir apenas números, vírgula e ponto
                   const value = e.target.value.replace(/[^0-9.,]/g, "")
                   setFormData({ ...formData, amount: value })
                 }}
                 onKeyPress={(e) => {
-                  // Permitir apenas números, vírgula, ponto e teclas de controle
                   if (!/[0-9.,]/.test(e.key) && !["Backspace", "Delete", "Tab", "Enter"].includes(e.key)) {
                     e.preventDefault()
                   }

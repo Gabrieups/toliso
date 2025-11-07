@@ -19,17 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { useAlertModal } from "@/hooks/use-alert-modal"
 import { createUserAction, updateUserAction, deleteUserAction, getUsersAction } from "@/app/actions/users"
 
 interface AdminUser {
@@ -55,6 +45,7 @@ export function AdminUsers() {
     status: "active" as "active" | "inactive",
   })
   const [isSendingEmails, setIsSendingEmails] = useState(false)
+  const alertModal = useAlertModal()
 
   useEffect(() => {
     loadUsers()
@@ -92,11 +83,17 @@ export function AdminUsers() {
         setFormData({ name: "", email: "", password: "", role: "user", status: "active" })
         setIsAddModalOpen(false)
       } else {
-        alert(result.error || "Erro ao criar usuário")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao criar usuário",
+        })
       }
     } catch (error) {
       console.error("Erro ao criar usuário:", error)
-      alert("Erro ao criar usuário")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao criar usuário",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -121,11 +118,17 @@ export function AdminUsers() {
         setEditingUser(null)
         setFormData({ name: "", email: "", password: "", role: "user", status: "active" })
       } else {
-        alert(result.error || "Erro ao atualizar usuário")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao atualizar usuário",
+        })
       }
     } catch (error) {
       console.error("Erro ao atualizar usuário:", error)
-      alert("Erro ao atualizar usuário")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao atualizar usuário",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -138,37 +141,57 @@ export function AdminUsers() {
       if (result.success) {
         await loadUsers()
       } else {
-        alert(result.error || "Erro ao excluir usuário")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao excluir usuário",
+        })
       }
     } catch (error) {
       console.error("Erro ao excluir usuário:", error)
-      alert("Erro ao excluir usuário")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao excluir usuário",
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleSendExpenseReport = async () => {
-    if (!confirm("Deseja enviar o relatório de gastos para todos os usuários ativos?")) {
-      return
-    }
+    alertModal.open({
+      variant: "warning",
+      title: "Enviar relatórios",
+      message: "Deseja enviar o relatório de gastos para todos os usuários ativos?",
+      showCancel: true,
+      confirmText: "Enviar",
+      onConfirm: async () => {
+        setIsSendingEmails(true)
+        try {
+          const { sendExpenseReportAction } = await import("@/app/actions/email")
+          const result = await sendExpenseReportAction()
 
-    setIsSendingEmails(true)
-    try {
-      const { sendExpenseReportAction } = await import("@/app/actions/email")
-      const result = await sendExpenseReportAction()
-
-      if (result.success) {
-        alert(result.message)
-      } else {
-        alert(result.error || "Erro ao enviar relatórios")
-      }
-    } catch (error) {
-      console.error("Erro ao enviar relatórios:", error)
-      alert("Erro ao enviar relatórios")
-    } finally {
-      setIsSendingEmails(false)
-    }
+          if (result.success) {
+            alertModal.open({
+              variant: "success",
+              message: result.message || "Relatórios enviados com sucesso",
+            })
+          } else {
+            alertModal.open({
+              variant: "error",
+              message: result.error || "Erro ao enviar relatórios",
+            })
+          }
+        } catch (error) {
+          console.error("Erro ao enviar relatórios:", error)
+          alertModal.open({
+            variant: "error",
+            message: "Erro ao enviar relatórios",
+          })
+        } finally {
+          setIsSendingEmails(false)
+        }
+      },
+    })
   }
 
   const filteredUsers = users.filter(
@@ -475,35 +498,24 @@ export function AdminUsers() {
                         </DialogContent>
                       </Dialog>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-custom-error hover:text-custom-error-dark"
-                            disabled={isLoading}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="w-[95vw] max-w-md mx-auto">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir o usuário "{user.name}"? Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="bg-custom-error hover:bg-custom-error-dark text-white w-full sm:w-auto"
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-custom-error hover:text-custom-error-dark"
+                        disabled={isLoading}
+                        onClick={() =>
+                          alertModal.open({
+                            variant: "warning",
+                            title: "Excluir usuário",
+                            message: `Tem certeza que deseja excluir o usuário "${user.name}"? Esta ação não pode ser desfeita.`,
+                            showCancel: true,
+                            confirmText: "Excluir",
+                            onConfirm: async () => handleDeleteUser(user.id),
+                          })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>

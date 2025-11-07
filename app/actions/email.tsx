@@ -117,31 +117,61 @@ export async function sendExpenseReportAction() {
           body: JSON.stringify({
             to: userExpense.email,
             subject: `Relatório de Gastos - ${periodDisplay}`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2ECC71;">To Liso - Relatório de Gastos</h2>
-                <p>Olá, <strong>${userExpense.name}</strong>!</p>
-                <p>Segue o resumo dos seus gastos no período <strong>${periodDisplay}</strong>:</p>
-                
-                <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="color: #e74c3c; margin-top: 0;">Total de Gastos</h3>
-                  <p style="font-size: 32px; font-weight: bold; color: #e74c3c; margin: 10px 0;">
-                    R$ ${userExpense.totalExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                  <p style="color: #666; margin-bottom: 0;">
-                    ${userExpense.transactionCount} transação${userExpense.transactionCount !== 1 ? "ões" : ""} registrada${userExpense.transactionCount !== 1 ? "s" : ""}
-                  </p>
-                </div>
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align: center;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <img src="https://toliso.hezo.dev.br/ToLiso-Logo-Cor.png" alt="To Liso Logo" width="150" style="display:block;" />
+                    <h2 style="color: #2ECC71; margin: 10px 0;">To Liso</h2>
+                  </td>
+                </tr>
 
-                <p>Acesse a plataforma para ver mais detalhes sobre suas despesas.</p>
-                
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
-                
-                <p style="color: #999; font-size: 12px;">
-                  Este é um email automático. Por favor, não responda.
-                </p>
-              </div>
-            `,
+                <tr>
+                  <td align="left" style="padding: 0 20px;">
+                    <p>Olá, <strong>${userExpense.name}</strong>!</p>
+                    <p>Segue o resumo dos seus gastos no período <strong>${periodDisplay}</strong>:</p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" 
+                      style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                      <tr>
+                        <td align="center">
+                          <h3 style="color: #e74c3c; margin-top: 0;">Total de Gastos</h3>
+                          <p style="font-size: 32px; font-weight: bold; color: #e74c3c; margin: 10px 0;">
+                            R$ ${userExpense.totalExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                          <p style="color: #666; margin-bottom: 0;">
+                            ${userExpense.transactionCount} transa${userExpense.transactionCount !== 1 ? "ções" : "ção"} registrada${userExpense.transactionCount !== 1 ? "s" : ""}
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center">
+                    <p>Acesse a plataforma para ver mais detalhes sobre suas despesas.</p>
+                    <a href="https://toliso.hezo.dev.br/" 
+                      style="display: inline-block; padding: 10px 20px; background-color: #2ECC71; color: #fff; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; margin-top: 20px;">
+                      Ir para a plataforma
+                    </a>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center" style="padding: 30px 0;">
+                    <hr style="border: none; border-top: 1px solid #ddd; width: 80%;" />
+                    <p style="color: #999; font-size: 12px;">Este é um email automático. Por favor, não responda.</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          `,
           }),
         })
 

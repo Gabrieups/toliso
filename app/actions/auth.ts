@@ -39,8 +39,6 @@ export async function loginAction(formData: FormData) {
       maxAge: 60 * 60 * 24 * 7, // 7 dias
     })
 
-    console.log("Usuário logado:", userData) // Para debug
-
     return { success: true, user: userData }
   } catch (error) {
     console.error("Erro no login:", error)

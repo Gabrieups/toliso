@@ -19,17 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { useAlertModal } from "@/hooks/use-alert-modal"
 import { createCardAction, updateCardAction, deleteCardAction, getCardsAction } from "@/app/actions/cards"
 import { CardBrandIcon } from "@/components/card-brand-icon"
 
@@ -60,6 +50,7 @@ export function AdminCards() {
     dueDate: 10,
     closingDate: 5,
   })
+  const alertModal = useAlertModal()
 
   const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1)
 
@@ -74,11 +65,11 @@ export function AdminCards() {
       if (result.success && result.cards) {
         setCards(result.cards)
       } else {
-        setCards([]) // Garantir array vazio se não houver cartões
+        setCards([])
       }
     } catch (error) {
       console.error("Erro ao carregar cartões:", error)
-      setCards([]) // Em caso de erro, garantir array vazio
+      setCards([])
     } finally {
       setIsLoading(false)
     }
@@ -112,11 +103,17 @@ export function AdminCards() {
         })
         setIsAddModalOpen(false)
       } else {
-        alert(result.error || "Erro ao criar cartão")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao criar cartão",
+        })
       }
     } catch (error) {
       console.error("Erro ao criar cartão:", error)
-      alert("Erro ao criar cartão")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao criar cartão",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -152,11 +149,17 @@ export function AdminCards() {
           closingDate: 5,
         })
       } else {
-        alert(result.error || "Erro ao atualizar cartão")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao atualizar cartão",
+        })
       }
     } catch (error) {
       console.error("Erro ao atualizar cartão:", error)
-      alert("Erro ao atualizar cartão")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao atualizar cartão",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -169,11 +172,17 @@ export function AdminCards() {
       if (result.success) {
         await loadCards()
       } else {
-        alert(result.error || "Erro ao excluir cartão")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao excluir cartão",
+        })
       }
     } catch (error) {
       console.error("Erro ao excluir cartão:", error)
-      alert("Erro ao excluir cartão")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao excluir cartão",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -599,35 +608,24 @@ export function AdminCards() {
                         </DialogContent>
                       </Dialog>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-custom-error hover:text-custom-error-dark"
-                            disabled={isLoading}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir cartão</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir o cartão "{card.name}"? Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteCard(card.id)}
-                              className="bg-custom-error hover:bg-custom-error-dark text-white"
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-custom-error hover:text-custom-error-dark"
+                        disabled={isLoading}
+                        onClick={() =>
+                          alertModal.open({
+                            variant: "warning",
+                            title: "Excluir cartão",
+                            message: `Tem certeza que deseja excluir o cartão "${card.name}"? Esta ação não pode ser desfeita.`,
+                            showCancel: true,
+                            confirmText: "Excluir",
+                            onConfirm: () => handleDeleteCard(card.id),
+                          })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

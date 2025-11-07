@@ -12,17 +12,7 @@ import { deleteEntryAction } from "@/app/actions/entries"
 import { AddEntryModal } from "@/components/add-entry-modal"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { CardBrandIcon } from "@/components/card-brand-icon"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { useAlertModal } from "@/hooks/use-alert-modal"
 
 interface Invoice {
   cardId: string
@@ -55,6 +45,7 @@ export function Invoices() {
   const [isLoading, setIsLoading] = useState(true)
   const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(new Set())
   const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set())
+  const alertModal = useAlertModal()
 
   useEffect(() => {
     loadData()
@@ -89,11 +80,17 @@ export function Invoices() {
       if (result.success) {
         await loadData()
       } else {
-        alert(result.error || "Erro ao excluir pagamento")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao excluir pagamento",
+        })
       }
     } catch (error) {
       console.error("Erro ao excluir pagamento:", error)
-      alert("Erro ao excluir pagamento")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao excluir pagamento",
+      })
     }
   }
 
@@ -119,7 +116,6 @@ export function Invoices() {
     const selectedInvoice = invoices.find((inv) => inv.cardName === selectedCard)
     return selectedInvoice?.cardColor || "#2ECC71"
   }
-
 
   const togglePaymentExpansion = (paymentKey: string) => {
     const newExpanded = new Set(expandedPayments)
@@ -321,36 +317,23 @@ export function Invoices() {
                               <div className="text-green-600 font-semibold">
                                 +R$ {entry.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                               </div>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="w-[95vw] max-w-md mx-auto">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Excluir pagamento</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Tem certeza que deseja excluir o pagamento "{entry.title}"
-                                      {entry.userName && ` feito por ${entry.userName}`}? Esta ação não pode ser
-                                      desfeita.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                    <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDeleteEntry(entry.id)}
-                                      className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
-                                    >
-                                      Excluir
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                onClick={() =>
+                                  alertModal.open({
+                                    variant: "warning",
+                                    title: "Excluir pagamento",
+                                    message: `Tem certeza que deseja excluir o pagamento "${entry.title}"${entry.userName ? ` feito por ${entry.userName}` : ""}? Esta ação não pode ser desfeita.`,
+                                    showCancel: true,
+                                    confirmText: "Excluir",
+                                    onConfirm: () => handleDeleteEntry(entry.id),
+                                  })
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}

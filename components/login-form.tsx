@@ -33,9 +33,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
       if (result.error) {
         setError(result.error)
       } else if (result.success && result.user) {
-        console.log("Login bem-sucedido:", result.user) // Para debug
-
-        // Salvar dados no localStorage também para compatibilidade
         localStorage.setItem("isAuthenticated", "true")
         localStorage.setItem("userEmail", result.user.email)
         localStorage.setItem("userName", result.user.name)
@@ -63,7 +60,9 @@ export function LoginForm({ onLogin }: LoginFormProps) {
         <Card className="w-full max-w-md bg-white dark:bg-custom-bg-dark border-custom-border dark:border-custom-border-dark">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <img src="/ToLiso-Logo-Cor.png" alt="To Liso" className="h-14 w-14" />
+              <div className="p-3 bg-custom-primary dark:bg-custom-primary-dark rounded-full">
+                <CreditCard className="h-2 w-2 text-white" />
+              </div>
             </div>
             <CardTitle className="text-2xl font-bold text-custom-text-primary dark:text-custom-text-primary-dark">
               To Liso
