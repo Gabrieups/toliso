@@ -26,6 +26,7 @@ interface Invoice {
   transactions: any[]
   totalExpenses: number
   balance: number
+  paymentsApplied?: number
 }
 
 interface PaymentBlock {
@@ -40,7 +41,7 @@ export function Invoices() {
   const [paymentBlocks, setPaymentBlocks] = useState<PaymentBlock[]>([])
   const [cards, setCards] = useState<string[]>([])
   const [selectedCard, setSelectedCard] = useState<string>("all")
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("all")
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("current")
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(new Set())
@@ -198,14 +199,14 @@ export function Invoices() {
                 <SelectValue placeholder="Filtrar por período" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os períodos</SelectItem>
                 {uniquePeriods.map((period) => {
                   const invoice = invoices.find((inv) => inv.period === period)
                   const paymentBlock = paymentBlocks.find((pb) => pb.period === period)
                   const periodDisplay = invoice?.periodDisplay || paymentBlock?.periodDisplay || period
+                  const isCurrent = period === uniquePeriods[0]
                   return (
                     <SelectItem key={period} value={period}>
-                      {periodDisplay}
+                      {periodDisplay} {isCurrent && "(Vigente)"}
                     </SelectItem>
                   )
                 })}
@@ -380,7 +381,7 @@ export function Invoices() {
                             <div className="text-lg font-bold text-red-600">
                               -R$ {invoice.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </div>
-                            <div className="text-xs text-gray-500">A pagar</div>
+                            <div className="text-xs text-gray-500">Saldo devedor</div>
                           </div>
                           {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                         </div>
@@ -390,16 +391,32 @@ export function Invoices() {
 
                   <CollapsibleContent>
                     <CardContent className="pt-0">
-                      <div className="flex items-center space-x-2 mb-6">
-                        <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
-                          <Minus className="h-4 w-4 text-red-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-500">Gastos</div>
-                          <div className="font-semibold text-red-600">
-                            R$ {invoice.totalExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                            <Minus className="h-4 w-4 text-red-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm text-gray-500">Total Gastos</div>
+                            <div className="font-semibold text-red-600">
+                              R$ {invoice.totalExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </div>
                           </div>
                         </div>
+
+                        {invoice.paymentsApplied !== undefined && invoice.paymentsApplied > 0 && (
+                          <div className="flex items-center space-x-2">
+                            <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                              <Plus className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="text-sm text-gray-500">Pagamentos</div>
+                              <div className="font-semibold text-green-600">
+                                R$ {invoice.paymentsApplied.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {invoice.transactions.length > 0 && (

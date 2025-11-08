@@ -27,6 +27,8 @@ export async function createTransactionAction(formData: FormData) {
   const divisionType = formData.get("divisionType") as "equal" | "custom"
   const sharedUserIds = formData.get("sharedUserIds") as string
   const customSharesStr = formData.get("customShares") as string
+  const targetUserId = formData.get("targetUserId") as string
+  const customDate = formData.get("customDate") as string
 
   if (!title || !amount || !cardName) {
     return { error: "Título, valor e cartão são obrigatórios" }
@@ -49,6 +51,14 @@ export async function createTransactionAction(formData: FormData) {
       return { error: "Cartão não encontrado" }
     }
 
+    let primaryUser = currentUser
+    if (currentUser.role === "admin" && targetUserId) {
+      const targetUser = await userService.getById(targetUserId)
+      if (targetUser) {
+        primaryUser = targetUser
+      }
+    }
+
     let usersToShare: Array<{ id: string; name: string; email: string; amount: number }> = []
 
     if (isShared) {
@@ -60,9 +70,9 @@ export async function createTransactionAction(formData: FormData) {
 
         usersToShare = [
           {
-            id: currentUser.id,
-            name: currentUser.name,
-            email: currentUser.email,
+            id: primaryUser.id,
+            name: primaryUser.name,
+            email: primaryUser.email,
             amount: amount / (selectedUsers.length + 1),
           },
           ...selectedUsers.map((u) => ({
@@ -75,20 +85,20 @@ export async function createTransactionAction(formData: FormData) {
       } else {
         // Divisão personalizada
         const customShares: CustomShare[] = JSON.parse(customSharesStr)
-        const currentUserEmail = currentUser.email
+        const primaryUserEmail = primaryUser.email
 
         // Mapear shares para usuários
-        const currentUserShare = customShares.find((s) => s.userId === currentUserEmail)
-        const otherShares = customShares.filter((s) => s.userId !== currentUserEmail)
+        const primaryUserShare = customShares.find((s) => s.userId === primaryUserEmail)
+        const otherShares = customShares.filter((s) => s.userId !== primaryUserEmail)
 
         const allUsers = await userService.getActiveUsers()
 
         usersToShare = [
           {
-            id: currentUser.id,
-            name: currentUser.name,
-            email: currentUser.email,
-            amount: Number.parseFloat(currentUserShare?.amount || "0"),
+            id: primaryUser.id,
+            name: primaryUser.name,
+            email: primaryUser.email,
+            amount: Number.parseFloat(primaryUserShare?.amount || "0"),
           },
         ]
 
@@ -106,7 +116,7 @@ export async function createTransactionAction(formData: FormData) {
       }
     } else {
       // Não compartilhado
-      usersToShare = [{ id: currentUser.id, name: currentUser.name, email: currentUser.email, amount }]
+      usersToShare = [{ id: primaryUser.id, name: primaryUser.name, email: primaryUser.email, amount }]
     }
 
     const installmentGroup =
@@ -116,6 +126,8 @@ export async function createTransactionAction(formData: FormData) {
     const transactionsToCreate = []
     const monthsToCreate = isRecurring ? 12 : 1 // Criar 12 meses de despesas recorrentes
 
+    const baseDate = customDate ? new Date(customDate) : new Date()
+
     // Criar transações para cada mês (se recorrente)
     for (let month = 0; month < monthsToCreate; month++) {
       // Criar transações para cada usuário
@@ -124,7 +136,7 @@ export async function createTransactionAction(formData: FormData) {
 
         // Criar transações para cada parcela
         for (let i = 1; i <= installments; i++) {
-          const installmentDate = new Date()
+          const installmentDate = new Date(baseDate)
           // Se recorrente, adicionar meses extras
           installmentDate.setMonth(installmentDate.getMonth() + month + (i - 1))
 
@@ -196,6 +208,10 @@ export async function createTransactionAction(formData: FormData) {
       message += ` para ${usersToShare.length} usuário${usersToShare.length > 1 ? "s" : ""}`
     }
 
+    if (currentUser.role === "admin" && targetUserId && targetUserId !== currentUser.id) {
+      message += ` para ${primaryUser.name}`
+    }
+
     return {
       success: true,
       transactions: createdTransactions,
@@ -238,6 +254,66 @@ export async function deleteTransactionAction(transactionId: string) {
     return { success: true }
   } catch (error) {
     console.error("Erro ao excluir transação:", error)
+    return { error: "Erro interno do servidor" }
+  }
+}
+
+export async function editTransactionAction(transactionId: string, formData: FormData) {
+  const currentUser = await getCurrentUser()
+
+  if (!currentUser || currentUser.role !== "admin") {
+    return { error: "Apenas administradores podem editar transações" }
+  }
+
+  const title = formData.get("title") as string
+  const description = formData.get("description") as string
+  const amount = Number.parseFloat((formData.get("amount") as string).replace(",", "."))
+  const cardName = formData.get("card") as string
+  const date = formData.get("date") as string
+
+  if (!title || !amount || !cardName) {
+    return { error: "Título, valor e cartão são obrigatórios" }
+  }
+
+  if (amount <= 0) {
+    return { error: "O valor deve ser maior que zero" }
+  }
+
+  try {
+    const allTransactions = await transactionService.getAll()
+    const transaction = allTransactions.find((t) => t.id === transactionId)
+
+    if (!transaction) {
+      return { error: "Transação não encontrada" }
+    }
+
+    // Buscar o cartão para obter o ID
+    const cards = await cardService.getAll()
+    const selectedCard = cards.find((card) => card.name === cardName)
+
+    if (!selectedCard) {
+      return { error: "Cartão não encontrado" }
+    }
+
+    await transactionService.update(transactionId, {
+      title,
+      description: description || "",
+      amount,
+      cardId: selectedCard.id,
+      cardName: selectedCard.name,
+      date: date || transaction.date,
+    })
+
+    revalidatePath("/")
+    revalidatePath("/dashboard")
+    revalidatePath("/invoices")
+
+    return {
+      success: true,
+      message: "Transação atualizada com sucesso",
+    }
+  } catch (error) {
+    console.error("Erro ao editar transação:", error)
     return { error: "Erro interno do servidor" }
   }
 }

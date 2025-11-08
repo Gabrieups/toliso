@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useAlertModal } from "@/hooks/use-alert-modal"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,7 @@ import {
 } from "lucide-react"
 import { AddExpenseModal } from "@/components/add-expense-modal"
 import { AddEntryModal } from "@/components/add-entry-modal"
+import { EditExpenseModal } from "@/components/edit-expense-modal"
 import { TransactionHistory } from "@/components/transaction-history"
 import { EntryHistory } from "@/components/entry-history"
 import { getTransactionsAction, deleteTransactionAction } from "@/app/actions/transactions"
@@ -56,6 +58,7 @@ interface Transaction {
   isShared?: boolean
   sharedWith?: string[]
   sharedUserNames?: string[]
+  installmentGroup?: string
 }
 
 interface Entry {
@@ -91,11 +94,14 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   const [selectedUser, setSelectedUser] = useState<string>("all")
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false)
+  const [isEditExpenseModalOpen, setIsEditExpenseModalOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState<string>("current")
   const [isCardsExpanded, setIsCardsExpanded] = useState(true)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const alertModal = useAlertModal()
 
   useEffect(() => {
     loadData()
@@ -112,7 +118,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           description: t.description,
           amount: t.amount,
           originalAmount: t.originalAmount,
-          card: t.cardName,
           cardName: t.cardName,
           date: t.date,
           userId: t.userId,
@@ -124,6 +129,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           isShared: t.isShared,
           sharedWith: t.sharedWith,
           sharedUserNames: t.sharedUserNames,
+          installmentGroup: t.installmentGroup,
         }))
         setTransactions(formattedTransactions)
 
@@ -229,11 +235,17 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
       if (result.success) {
         await loadData()
       } else {
-        alert(result.error || "Erro ao excluir transação")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao excluir transação",
+        })
       }
     } catch (error) {
       console.error("Erro ao excluir transação:", error)
-      alert("Erro ao excluir transação")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao excluir transação",
+      })
     }
   }
 
@@ -243,12 +255,23 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
       if (result.success) {
         await loadData()
       } else {
-        alert(result.error || "Erro ao excluir pagamento")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao excluir pagamento",
+        })
       }
     } catch (error) {
       console.error("Erro ao excluir pagamento:", error)
-      alert("Erro ao excluir pagamento")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao excluir pagamento",
+      })
     }
+  }
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setIsEditExpenseModalOpen(true)
   }
 
   const currentUserEmail = localStorage.getItem("userEmail")
@@ -256,14 +279,9 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   let userFilteredTransactions = transactions
   let userFilteredEntries = entries
 
-  if (userRole === "admin") {
-    if (selectedUser !== "all") {
-      userFilteredTransactions = transactions.filter((t) => t.userEmail === selectedUser)
-      userFilteredEntries = entries.filter((e) => e.userEmail === selectedUser)
-    }
-  } else {
-    userFilteredTransactions = transactions.filter((t) => t.userEmail === currentUserEmail)
-    userFilteredEntries = entries.filter((e) => e.userEmail === currentUserEmail)
+  if (selectedUser !== "all") {
+    userFilteredTransactions = transactions.filter((t) => t.userEmail === selectedUser)
+    userFilteredEntries = entries.filter((e) => e.userEmail === selectedUser)
   }
 
   // Period filtering
@@ -281,7 +299,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
       const { period } = getInvoicePeriod(new Date(e.date))
       return period === currentPeriod
     })
-  } else if (selectedPeriod !== "all") {
+  } else {
     periodFilteredTransactions = userFilteredTransactions.filter((t) => {
       const { period } = getInvoicePeriod(new Date(t.date))
       return period === selectedPeriod
@@ -366,9 +384,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   const currentPeriodDisplay = getInvoicePeriod(new Date()).periodDisplay
 
   const getSelectedPeriodDisplay = () => {
-    if (selectedPeriod === "all") {
-      return "Todos os períodos"
-    } else if (selectedPeriod === "current") {
+    if (selectedPeriod === "current") {
       return currentPeriodDisplay
     } else {
       const { periodDisplay } = getInvoicePeriod(new Date(`${selectedPeriod}-01`))
@@ -377,6 +393,43 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   }
 
   const selectedPeriodDisplay = getSelectedPeriodDisplay()
+
+  const groupSharedTransactions = (transactions: Transaction[]): Transaction[] => {
+    const grouped: { [key: string]: Transaction } = {}
+    const individual: Transaction[] = []
+
+    transactions.forEach((transaction) => {
+      if (transaction.isShared && transaction.installmentGroup) {
+        const key = `${transaction.installmentGroup}-${transaction.currentInstallment || 1}`
+        if (!grouped[key]) {
+          grouped[key] = {
+            ...transaction,
+            title: transaction.title.replace(/ - Parte .*$/, "").replace(/ - Compartilhado$/, ""),
+            amount: transaction.originalAmount || transaction.amount,
+            description: `Despesa compartilhada entre ${transaction.sharedUserNames?.join(", ")}`,
+          }
+        }
+      } else if (transaction.isShared) {
+        const dateKey = new Date(transaction.date).toISOString().split("T")[0]
+        const baseTitle = transaction.title.replace(/ - Parte .*$/, "").replace(/ - Compartilhado$/, "")
+        const key = `${baseTitle}-${dateKey}`
+        if (!grouped[key]) {
+          grouped[key] = {
+            ...transaction,
+            title: baseTitle,
+            amount: transaction.originalAmount || transaction.amount,
+            description: `Despesa compartilhada entre ${transaction.sharedUserNames?.join(", ")}`,
+          }
+        }
+      } else {
+        individual.push(transaction)
+      }
+    })
+
+    return [...Object.values(grouped), ...individual]
+  }
+
+  const groupedTransactions = groupSharedTransactions(filteredTransactions)
 
   if (isLoading) {
     return (
@@ -395,15 +448,9 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
           <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           <AlertDescription className="text-orange-800 dark:text-orange-200 text-sm">
-            Nenhum cartão de crédito cadastrado.{" "}
-            {userRole === "admin" ? (
-              <>
-                Vá para <span className="font-semibold cursor-pointer hover:underline">Gerenciar Cartões</span> para
-                adicionar cartões antes de criar transações.
-              </>
-            ) : (
-              "Entre em contato com o administrador para cadastrar cartões."
-            )}
+            Nenhum cartão de crédito cadastrado.
+            <span className="font-semibold cursor-pointer hover:underline ml-1">Vá para Gerenciar Cartões</span> para
+            adicionar cartões antes de criar transações.
           </AlertDescription>
         </Alert>
       )}
@@ -414,12 +461,15 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Meus Gastos</CardTitle>
+                <CardTitle className="text-sm font-medium">Gastos Totais (Todos Usuários)</CardTitle>
                 <Minus className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl sm:text-2xl font-bold text-red-600">
-                  R$ {adminMyExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R${" "}
+                  {allUsersSelectedPeriodTransactions
+                    .reduce((sum, t) => sum + t.amount, 0)
+                    .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground">{selectedPeriodDisplay}</p>
               </CardContent>
@@ -427,12 +477,20 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Meus Pagamentos</CardTitle>
+                <CardTitle className="text-sm font-medium">Pagamentos Totais (Todos Usuários)</CardTitle>
                 <Wallet className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl sm:text-2xl font-bold text-green-600">
-                  R$ {adminMyPayments.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R${" "}
+                  {entries
+                    .filter((e) => {
+                      const { period } = getInvoicePeriod(new Date(e.date))
+                      const targetPeriod = selectedPeriod === "current" ? getCurrentPeriod() : selectedPeriod
+                      return period === targetPeriod
+                    })
+                    .reduce((sum, e) => sum + e.amount, 0)
+                    .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground">{selectedPeriodDisplay}</p>
               </CardContent>
@@ -480,7 +538,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
                         <CreditCard className="h-4 w-4" style={{ color: cardExpense.cardColor }} />
                         <span className="font-medium text-sm">{cardExpense.cardName}</span>
                       </div>
-                      <div className="text-xl font-bold text-white">
+                      <div className="text-xl font-bold text-red-600">
                         R$ {cardExpense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </div>
                     </div>
@@ -545,7 +603,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
                 <Filter className="h-5 w-5" />
                 Opções de Filtro
               </DialogTitle>
-              <DialogDescription>Configure os filtros para visualizar suas movimentações</DialogDescription>
+              <DialogDescription>Configure os filtros para visualizar as movimentações</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               {/* Filtro de Período */}
@@ -559,8 +617,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
                     <SelectValue placeholder="Filtrar por período" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="current">{currentPeriodDisplay}</SelectItem>
-                    <SelectItem value="all">Todos os períodos</SelectItem>
+                    <SelectItem value="current">{currentPeriodDisplay} (Vigente)</SelectItem>
                     {uniquePeriods
                       .filter((period) => period !== getCurrentPeriod())
                       .map((period) => {
@@ -679,18 +736,17 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         <CardContent className="px-2 sm:px-6">
           <Tabs defaultValue="transactions" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="transactions">Despesas ({filteredTransactions.length})</TabsTrigger>
+              <TabsTrigger value="transactions">Despesas ({groupedTransactions.length})</TabsTrigger>
               <TabsTrigger value="entries">Pagamentos ({periodFilteredEntries.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="transactions" className="mt-4">
               <TransactionHistory
-                transactions={filteredTransactions.map((t) => ({
-                  ...t,
-                  card: t.cardName,
-                }))}
+                transactions={groupedTransactions}
                 onDeleteTransaction={handleDeleteTransaction}
+                onEditTransaction={userRole === "admin" ? handleEditTransaction : undefined}
                 showUserInfo={userRole === "admin"}
                 cards={cards}
+                isAdmin={userRole === "admin"}
               />
             </TabsContent>
             <TabsContent value="entries" className="mt-4">
@@ -711,6 +767,20 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           isOpen={isAddExpenseModalOpen}
           onClose={() => setIsAddExpenseModalOpen(false)}
           onAddExpense={loadData}
+          cards={cardNames}
+        />
+      )}
+
+      {/* Edit Expense Modal */}
+      {!hasNoCards && userRole === "admin" && (
+        <EditExpenseModal
+          isOpen={isEditExpenseModalOpen}
+          onClose={() => {
+            setIsEditExpenseModalOpen(false)
+            setSelectedTransaction(null)
+          }}
+          onEditExpense={loadData}
+          transaction={selectedTransaction}
           cards={cardNames}
         />
       )}

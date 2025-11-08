@@ -106,6 +106,7 @@ export interface Invoice {
   transactions: Transaction[]
   totalExpenses: number
   balance: number
+  paymentsApplied: number
 }
 
 export interface PaymentBlock {
@@ -374,6 +375,30 @@ export const transactionService = {
     return result.Items as Transaction[]
   },
 
+  async update(id: string, updates: Partial<Omit<Transaction, "id" | "createdAt">>) {
+    const now = new Date().toISOString()
+
+    const updateExpressions: string[] = ["#updatedAt = :updatedAt"]
+    const attributeNames: Record<string, string> = { "#updatedAt": "updatedAt" }
+    const attributeValues: Record<string, any> = { ":updatedAt": now }
+
+    Object.keys(updates).forEach((key) => {
+      updateExpressions.push(`#${key} = :${key}`)
+      attributeNames[`#${key}`] = key
+      attributeValues[`:${key}`] = updates[key as keyof typeof updates]
+    })
+
+    await dynamodb.send(
+      new UpdateCommand({
+        TableName: TABLES.TRANSACTIONS,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames: attributeNames,
+        ExpressionAttributeValues: attributeValues,
+      }),
+    )
+  },
+
   async delete(id: string) {
     await dynamodb.send(
       new DeleteCommand({
@@ -587,6 +612,12 @@ export const invoiceService = {
       for (const [period, { transactions: periodTransactions, periodDisplay }] of transactionsByPeriod) {
         const totalExpenses = periodTransactions.reduce((sum, t) => sum + t.amount, 0)
 
+        const periodEntries = entries.filter((entry) => {
+          const { period: entryPeriod } = this.getInvoicePeriod(new Date(entry.date))
+          return entryPeriod === period
+        })
+        const paymentsApplied = periodEntries.reduce((sum, e) => sum + e.amount, 0)
+
         invoices.push({
           cardId: card.id,
           cardName: card.name,
@@ -598,7 +629,8 @@ export const invoiceService = {
           periodDisplay,
           transactions: periodTransactions,
           totalExpenses,
-          balance: totalExpenses,
+          balance: totalExpenses - paymentsApplied,
+          paymentsApplied,
         })
       }
     }

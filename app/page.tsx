@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { LoginForm } from "@/components/login-form"
 import { Dashboard } from "@/components/dashboard"
+import { Home } from "@/components/home"
 import { AdminUsers } from "@/components/admin-users"
 import { AdminCards } from "@/components/admin-cards"
 import { Invoices } from "@/components/invoices"
@@ -12,10 +13,10 @@ import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { Separator } from "@/components/ui/separator"
 
-export default function Home() {
+export default function Page() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState("dashboard")
+  const [currentPage, setCurrentPage] = useState("home")
   const [userRole, setUserRole] = useState<"admin" | "user">("user")
   const [userName, setUserName] = useState("")
 
@@ -81,20 +82,21 @@ export default function Home() {
     localStorage.removeItem("userName")
     localStorage.removeItem("userRole")
     setIsAuthenticated(false)
-    setCurrentPage("dashboard")
+    setCurrentPage("home")
   }
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case "home":
+        return <Home onLogout={handleLogout} userRole={userRole} />
       case "dashboard":
-        return <Dashboard onLogout={handleLogout} currentPage={currentPage} userRole={userRole} />
-      case "invoices":
-        // Only allow admin users to access invoices
         return userRole === "admin" ? (
-          <Invoices />
+          <Dashboard onLogout={handleLogout} currentPage={currentPage} userRole={userRole} />
         ) : (
-          <Dashboard onLogout={handleLogout} currentPage="dashboard" userRole={userRole} />
+          <Home onLogout={handleLogout} userRole={userRole} />
         )
+      case "invoices":
+        return userRole === "admin" ? <Invoices /> : <Home onLogout={handleLogout} userRole={userRole} />
       case "admin-users":
         return <AdminUsers />
       case "admin-cards":
@@ -111,16 +113,18 @@ export default function Home() {
           </div>
         )
       default:
-        return <Dashboard onLogout={handleLogout} currentPage="dashboard" userRole={userRole} />
+        return <Home onLogout={handleLogout} userRole={userRole} />
     }
   }
 
   const getPageTitle = () => {
     switch (currentPage) {
+      case "home":
+        return "Home"
       case "dashboard":
-        return "Dashboard"
+        return userRole === "admin" ? "Dashboard" : "Home"
       case "invoices":
-        return userRole === "admin" ? "Faturas" : "Dashboard"
+        return userRole === "admin" ? "Faturas" : "Home"
       case "admin-users":
         return "Gerenciar Usuários"
       case "admin-cards":
@@ -128,7 +132,7 @@ export default function Home() {
       case "settings":
         return "Configurações"
       default:
-        return "Dashboard"
+        return "Home"
     }
   }
 

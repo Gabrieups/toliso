@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Calendar, CreditCard, User, Users, Hash } from "lucide-react"
+import { Trash2, Calendar, CreditCard, User, Users, Hash, Pencil } from "lucide-react"
 import { CardBrandIcon } from "@/components/card-brand-icon"
 import {
   AlertDialog,
@@ -22,7 +22,7 @@ interface Transaction {
   description: string
   amount: number
   originalAmount?: number
-  card: string
+  cardName: string
   date: string
   userId?: string
   userName?: string
@@ -44,15 +44,19 @@ interface CardData {
 interface TransactionHistoryProps {
   transactions: Transaction[]
   onDeleteTransaction: (id: string) => void
+  onEditTransaction?: (transaction: Transaction) => void
   showUserInfo?: boolean
   cards?: CardData[]
+  isAdmin?: boolean
 }
 
 export function TransactionHistory({
   transactions,
   onDeleteTransaction,
+  onEditTransaction,
   showUserInfo = false,
   cards = [],
+  isAdmin = false,
 }: TransactionHistoryProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -107,7 +111,7 @@ export function TransactionHistory({
   return (
     <div className="space-y-3 sm:space-y-4">
       {transactions.map((transaction) => {
-        const cardData = getCardData(transaction.card)
+        const cardData = getCardData(transaction.cardName)
 
         return (
           <div
@@ -141,7 +145,7 @@ export function TransactionHistory({
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge style={cardData.style} className="border-0 flex items-center gap-1">
                     <CardBrandIcon brand={cardData.type} className="h-4 w-4" />
-                    {transaction.card}
+                    {transaction.cardName}
                   </Badge>
 
                   {transaction.isInstallment && transaction.totalInstallments && transaction.currentInstallment && (
@@ -171,49 +175,61 @@ export function TransactionHistory({
                   </div>
                 </div>
 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
+                <div className="flex items-center gap-2">
+                  {isAdmin && onEditTransaction && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 self-end sm:self-auto"
+                      onClick={() => onEditTransaction(transaction)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="w-[95vw] max-w-md mx-auto">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir transação</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja excluir a transação "{transaction.title}"
-                        {showUserInfo && transaction.userName && ` criada por ${transaction.userName}`}?
-                        {transaction.isInstallment && (
-                          <span className="block mt-2 text-orange-600 font-medium">
-                            ⚠️ Esta ação excluirá TODAS as parcelas desta compra.
-                          </span>
-                        )}
-                        {transaction.isShared && (
-                          <span className="block mt-2 text-purple-600 font-medium">
-                            👥 Esta transação é compartilhada com outros usuários.
-                          </span>
-                        )}
-                        <span className="block mt-2">Esta ação não pode ser desfeita.</span>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                      <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => onDeleteTransaction(transaction.id)}
-                        className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                  )}
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 self-end sm:self-auto"
                       >
-                        Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="w-[95vw] max-w-md mx-auto">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir transação</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir a transação "{transaction.title}"
+                          {showUserInfo && transaction.userName && ` criada por ${transaction.userName}`}?
+                          {transaction.isInstallment && (
+                            <span className="block mt-2 text-orange-600 font-medium">
+                              ⚠️ Esta ação excluirá TODAS as parcelas desta compra.
+                            </span>
+                          )}
+                          {transaction.isShared && (
+                            <span className="block mt-2 text-purple-600 font-medium">
+                              👥 Esta transação é compartilhada com outros usuários.
+                            </span>
+                          )}
+                          <span className="block mt-2">Esta ação não pode ser desfeita.</span>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => onDeleteTransaction(transaction.id)}
+                          className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
 
-              {/* Informações detalhadas para transações compartilhadas */}
               {transaction.isShared && transaction.sharedUserNames && transaction.sharedUserNames.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-custom-border dark:border-custom-border-dark">
                   <p className="text-xs text-custom-text-secondary dark:text-custom-text-secondary-dark flex items-center gap-1">
@@ -223,7 +239,6 @@ export function TransactionHistory({
                 </div>
               )}
 
-              {/* Informações adicionais do usuário para admin */}
               {showUserInfo && transaction.userEmail && (
                 <div className="mt-2 pt-2 border-t border-custom-border dark:border-custom-border-dark">
                   <p className="text-xs text-custom-text-secondary dark:text-custom-text-secondary-dark">

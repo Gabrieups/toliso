@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Users, X, CreditCard, Calendar, DollarSign, Repeat } from "lucide-react"
 import { createTransactionAction, getActiveUsersAction } from "@/app/actions/transactions"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useAlertModal } from "@/hooks/use-alert-modal"
 
 interface AddExpenseModalProps {
   isOpen: boolean
@@ -33,6 +34,7 @@ interface User {
   id: string
   name: string
   email: string
+  role?: string
 }
 
 interface UserShare {
@@ -52,26 +54,30 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
     installments: 1,
     isShared: false,
     isRecurring: false,
+    customDate: "",
   })
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [divisionType, setDivisionType] = useState<DivisionType>("equal")
   const [userShares, setUserShares] = useState<UserShare[]>([])
   const [availableUsers, setAvailableUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const alertModal = useAlertModal()
+  const [targetUserId, setTargetUserId] = useState<string>("")
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       loadUsers()
+      const userRole = localStorage.getItem("userRole")
+      setIsAdmin(userRole === "admin")
     }
   }, [isOpen])
 
-  // Atualizar shares quando usuários ou tipo de divisão mudam
   useEffect(() => {
     if (formData.isShared && selectedUsers.length > 0) {
       const currentUserEmail = localStorage.getItem("userEmail")
       const currentUserName = localStorage.getItem("userName") || "Você"
 
-      // Adicionar o usuário atual
       const allUserIds = [currentUserEmail!, ...selectedUsers]
       const allUserNames = [
         currentUserName,
@@ -79,7 +85,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
       ]
 
       if (divisionType === "equal") {
-        // Divisão igual
         const totalAmount = Number.parseFloat(formData.amount.replace(",", ".")) || 0
         const amountPerUser = totalAmount / allUserIds.length
 
@@ -91,7 +96,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
           })),
         )
       } else if (userShares.length === 0 || userShares.length !== allUserIds.length) {
-        // Inicializar divisão customizada
         setUserShares(
           allUserIds.map((userId, index) => ({
             userId,
@@ -111,7 +115,7 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
       if (result.success && result.users) {
         const currentUserEmail = localStorage.getItem("userEmail")
         const otherUsers = result.users.filter((user: User) => user.email !== currentUserEmail)
-        setAvailableUsers(otherUsers)
+        setAvailableUsers(result.users)
       }
     } catch (error) {
       console.error("Erro ao carregar usuários:", error)
@@ -126,7 +130,10 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
     }
 
     if (formData.isShared && selectedUsers.length === 0) {
-      alert("Selecione pelo menos um usuário para compartilhar a despesa")
+      alertModal.open({
+        variant: "error",
+        message: "Selecione pelo menos um usuário para compartilhar a despesa",
+      })
       return
     }
 
@@ -135,9 +142,10 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
       const totalAmount = Number.parseFloat(formData.amount.replace(",", "."))
 
       if (Math.abs(totalShares - totalAmount) > 0.01) {
-        alert(
-          `A soma dos valores individuais (R$ ${totalShares.toFixed(2)}) não corresponde ao valor total (R$ ${totalAmount.toFixed(2)})`,
-        )
+        alertModal.open({
+          variant: "error",
+          message: `A soma dos valores individuais (R$ ${totalShares.toFixed(2)}) não corresponde ao valor total (R$ ${totalAmount.toFixed(2)})`,
+        })
         return
       }
     }
@@ -154,6 +162,13 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
     formDataObj.append("isRecurring", formData.isRecurring.toString())
     formDataObj.append("divisionType", divisionType)
 
+    if (isAdmin && targetUserId) {
+      formDataObj.append("targetUserId", targetUserId)
+    }
+    if (formData.customDate) {
+      formDataObj.append("customDate", formData.customDate)
+    }
+
     if (formData.isShared) {
       if (divisionType === "equal") {
         formDataObj.append("sharedUserIds", JSON.stringify(selectedUsers))
@@ -169,14 +184,23 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
         onAddExpense()
         onClose()
         if (result.message) {
-          alert(result.message)
+          alertModal.open({
+            variant: "success",
+            message: result.message,
+          })
         }
       } else {
-        alert(result.error || "Erro ao criar transação")
+        alertModal.open({
+          variant: "error",
+          message: result.error || "Erro ao criar transação",
+        })
       }
     } catch (error) {
       console.error("Erro ao criar transação:", error)
-      alert("Erro ao criar transação")
+      alertModal.open({
+        variant: "error",
+        message: "Erro ao criar transação",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -191,10 +215,12 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
       installments: 1,
       isShared: false,
       isRecurring: false,
+      customDate: "",
     })
     setSelectedUsers([])
     setUserShares([])
     setDivisionType("equal")
+    setTargetUserId("")
   }
 
   const handleClose = () => {
@@ -252,6 +278,25 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            {isAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="targetUser">Adicionar despesa para</Label>
+                <Select value={targetUserId} onValueChange={setTargetUserId} disabled={isLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o usuário (ou deixe em branco para você mesmo)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="self">Você mesmo</SelectItem>
+                    {availableUsers.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} ({user.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title">Título *</Label>
               <Input
@@ -313,6 +358,23 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="customDate" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Data da Despesa
+              </Label>
+              <Input
+                id="customDate"
+                type="date"
+                value={formData.customDate}
+                onChange={(e) => setFormData({ ...formData, customDate: e.target.value })}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Deixe em branco para usar a data atual. Use para registrar despesas retroativas ou futuras.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="installments" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Número de Parcelas
@@ -338,7 +400,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
               )}
             </div>
 
-            {/* Despesa constante */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -359,7 +420,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
               )}
             </div>
 
-            {/* Divisão entre usuários */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -386,7 +446,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
                     Selecione os usuários para dividir esta despesa:
                   </div>
 
-                  {/* Usuários selecionados */}
                   {selectedUsers.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {getSelectedUserNames().map((userName, index) => (
@@ -401,7 +460,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
                     </div>
                   )}
 
-                  {/* Lista de usuários disponíveis */}
                   <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
                     {availableUsers.length === 0 ? (
                       <p className="text-sm text-gray-500">Nenhum outro usuário disponível</p>
@@ -424,7 +482,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
 
                   {selectedUsers.length > 0 && (
                     <>
-                      {/* Tipo de divisão */}
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2">
                           <DollarSign className="h-4 w-4" />
@@ -449,7 +506,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
                         </RadioGroup>
                       </div>
 
-                      {/* Divisão igual */}
                       {divisionType === "equal" && (
                         <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
                           A despesa será dividida igualmente entre você e {selectedUsers.length} usuário
@@ -458,7 +514,6 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
                         </div>
                       )}
 
-                      {/* Divisão personalizada */}
                       {divisionType === "custom" && (
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Valores por usuário:</Label>

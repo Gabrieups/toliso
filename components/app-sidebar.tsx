@@ -32,17 +32,22 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 export function AppSidebar({ currentPage, onPageChange, onLogout, userRole, userName, ...props }: AppSidebarProps) {
   const userMenuItems = [
     {
-      title: "Dashboard",
-      url: "dashboard",
+      title: "Home",
+      url: "home",
       icon: Home,
     },
   ]
 
   const adminMenuItems = [
     {
+      title: "Home",
+      url: "home",
+      icon: Home,
+    },
+    {
       title: "Dashboard",
       url: "dashboard",
-      icon: Home,
+      icon: Receipt,
     },
     {
       title: "Faturas",
@@ -73,8 +78,8 @@ export function AppSidebar({ currentPage, onPageChange, onLogout, userRole, user
       <Sidebar variant="inset" collapsible="offcanvas" {...props}>
         <SidebarHeader>
           <div className="flex items-center gap-2 px-4 py-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-custom-primary text-white">
-              <img src="/ToLiso-Logo.png" alt="To Liso" className="h-9 w-9" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-custom-primary text-white">
+              <CreditCard className="h-2 w-2 text-white" />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-semibold text-custom-text-primary dark:text-custom-text-primary-dark">
