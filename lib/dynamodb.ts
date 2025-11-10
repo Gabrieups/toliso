@@ -513,7 +513,7 @@ export const entryService = {
 
 // Funções utilitárias para faturas
 export const invoiceService = {
-  getInvoicePeriod(date: Date): { period: string; periodDisplay: string } {
+  getInvoicePeriod(date: Date, closingDate = 16): { period: string; periodDisplay: string } {
     const year = date.getFullYear()
     const month = date.getMonth() + 1
     const day = date.getDate()
@@ -533,14 +533,14 @@ export const invoiceService = {
       "Dezembro",
     ]
 
-    if (day >= 16) {
+    if (day >= closingDate) {
       const nextMonth = month === 12 ? 1 : month + 1
       const nextYear = month === 12 ? year + 1 : year
       const period = `${nextYear}-${nextMonth.toString().padStart(2, "0")}`
 
-      const startDay = `16/${month.toString().padStart(2, "0")}`
-      const endDay = `15/${nextMonth.toString().padStart(2, "0")}`
-      const periodDisplay = `${monthNames[nextMonth - 1]} (${startDay} - ${endDay})`
+      const startDay = `${closingDate.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}`
+      const endDay = `${(closingDate - 1).toString().padStart(2, "0")}/${nextMonth.toString().padStart(2, "0")}`
+      const periodDisplay = `${monthNames[nextMonth - 1]}/${nextYear} (${startDay} - ${endDay})`
 
       return { period, periodDisplay }
     } else {
@@ -548,9 +548,9 @@ export const invoiceService = {
 
       const prevMonth = month === 1 ? 12 : month - 1
       const prevYear = month === 1 ? year - 1 : year
-      const startDay = `16/${prevMonth.toString().padStart(2, "0")}`
-      const endDay = `15/${month.toString().padStart(2, "0")}`
-      const periodDisplay = `${monthNames[month - 1]} (${startDay} - ${endDay})`
+      const startDay = `${closingDate.toString().padStart(2, "0")}/${prevMonth.toString().padStart(2, "0")}`
+      const endDay = `${(closingDate - 1).toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}`
+      const periodDisplay = `${monthNames[month - 1]}/${year} (${startDay} - ${endDay})`
 
       return { period, periodDisplay }
     }
@@ -572,8 +572,34 @@ export const invoiceService = {
       const groupedTransactions = new Map<string, Transaction>()
 
       for (const transaction of cardTransactions) {
-        if (transaction.isShared && transaction.installmentGroup) {
-          const key = `${transaction.installmentGroup}-${transaction.currentInstallment || 1}`
+        if (transaction.recurringGroup && transaction.isInstallment) {
+          const key = `recurring-${transaction.recurringGroup}-${transaction.currentInstallment || 1}`
+          if (!groupedTransactions.has(key)) {
+            const representativeTransaction = {
+              ...transaction,
+              amount: transaction.originalAmount || transaction.amount,
+              title: transaction.title.replace(/ - .+$/, ""),
+            }
+            groupedTransactions.set(key, representativeTransaction)
+          }
+        } else if (transaction.isShared && transaction.installmentGroup) {
+          const key = `shared-inst-${transaction.installmentGroup}-${transaction.currentInstallment || 1}`
+          const existingTransaction = groupedTransactions.get(key)
+
+          if (!existingTransaction) {
+            const installmentValue = transaction.originalAmount
+              ? transaction.originalAmount / (transaction.totalInstallments || 1)
+              : transaction.amount
+
+            const representativeTransaction = {
+              ...transaction,
+              amount: installmentValue,
+              title: transaction.title.replace(/ - (Compartilhado|Parte .+)/, ""),
+            }
+            groupedTransactions.set(key, representativeTransaction)
+          }
+        } else if (transaction.isShared && !transaction.installmentGroup) {
+          const key = `shared-${transaction.title.replace(/ - (Compartilhado|Parte .+)/, "")}-${transaction.date}`
           if (!groupedTransactions.has(key)) {
             const representativeTransaction = {
               ...transaction,
@@ -582,15 +608,15 @@ export const invoiceService = {
             }
             groupedTransactions.set(key, representativeTransaction)
           }
-        } else if (transaction.isShared && !transaction.installmentGroup) {
-          const key = `shared-${transaction.title}-${transaction.date}`
+        } else if (transaction.installmentGroup && !transaction.isShared) {
+          const key = `inst-${transaction.installmentGroup}-${transaction.currentInstallment || 1}`
           if (!groupedTransactions.has(key)) {
-            const representativeTransaction = {
-              ...transaction,
-              amount: transaction.originalAmount || transaction.amount,
-              title: transaction.title.replace(/ - (Compartilhado|Parte .+)/, ""),
-            }
-            groupedTransactions.set(key, representativeTransaction)
+            groupedTransactions.set(key, transaction)
+          }
+        } else if (transaction.recurringGroup && !transaction.isInstallment) {
+          const key = `recurring-${transaction.recurringGroup}`
+          if (!groupedTransactions.has(key)) {
+            groupedTransactions.set(key, transaction)
           }
         } else {
           const key = transaction.id
@@ -602,7 +628,7 @@ export const invoiceService = {
       const transactionsByPeriod = new Map<string, { transactions: Transaction[]; periodDisplay: string }>()
 
       for (const transaction of finalTransactions) {
-        const { period, periodDisplay } = this.getInvoicePeriod(new Date(transaction.date))
+        const { period, periodDisplay } = this.getInvoicePeriod(new Date(transaction.date), card.closingDate)
         if (!transactionsByPeriod.has(period)) {
           transactionsByPeriod.set(period, { transactions: [], periodDisplay })
         }
@@ -613,7 +639,7 @@ export const invoiceService = {
         const totalExpenses = periodTransactions.reduce((sum, t) => sum + t.amount, 0)
 
         const periodEntries = entries.filter((entry) => {
-          const { period: entryPeriod } = this.getInvoicePeriod(new Date(entry.date))
+          const { period: entryPeriod } = this.getInvoicePeriod(new Date(entry.date), card.closingDate)
           return entryPeriod === period
         })
         const paymentsApplied = periodEntries.reduce((sum, e) => sum + e.amount, 0)

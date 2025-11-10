@@ -127,11 +127,6 @@ export function TransactionHistory({
                   <span className="text-lg font-bold text-red-600">
                     R$ {transaction.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </span>
-                  {transaction.originalAmount && transaction.originalAmount !== transaction.amount && (
-                    <span className="text-xs text-gray-500">
-                      de R$ {transaction.originalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                  )}
                 </div>
               </div>
 

@@ -1,6 +1,4 @@
 "use client"
-
-import type React from "react"
 import { useAlertModal } from "@/hooks/use-alert-modal"
 
 import { useState, useEffect } from "react"
@@ -21,6 +19,8 @@ import {
   ChevronUp,
   Settings,
   Receipt,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { AddExpenseModal } from "@/components/add-expense-modal"
 import { AddEntryModal } from "@/components/add-entry-modal"
@@ -40,6 +40,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
+import { PeriodCalendar } from "@/components/period-calendar"
 
 interface Transaction {
   id: string
@@ -101,6 +103,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   const [selectedPeriod, setSelectedPeriod] = useState<string>("current")
   const [isCardsExpanded, setIsCardsExpanded] = useState(true)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
 
   useEffect(() => {
@@ -209,7 +212,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
 
       const startDay = `16/${month.toString().padStart(2, "0")}`
       const endDay = `15/${nextMonth.toString().padStart(2, "0")}`
-      const periodDisplay = `${monthNames[nextMonth - 1]} (${startDay} - ${endDay})`
+      const periodDisplay = `${monthNames[nextMonth - 1]}/${nextYear} (${startDay} - ${endDay})`
 
       return { period, periodDisplay }
     } else {
@@ -219,7 +222,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
       const prevYear = month === 1 ? year - 1 : year
       const startDay = `16/${prevMonth.toString().padStart(2, "0")}`
       const endDay = `15/${month.toString().padStart(2, "0")}`
-      const periodDisplay = `${monthNames[month - 1]} (${startDay} - ${endDay})`
+      const periodDisplay = `${monthNames[month - 1]}/${year} (${startDay} - ${endDay})`
 
       return { period, periodDisplay }
     }
@@ -431,6 +434,37 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
 
   const groupedTransactions = groupSharedTransactions(filteredTransactions)
 
+  // Period navigation functions
+  const navigateToPreviousPeriod = () => {
+    const currentIndex = uniquePeriods.findIndex(
+      (p) => p === (selectedPeriod === "current" ? getCurrentPeriod() : selectedPeriod),
+    )
+    if (currentIndex < uniquePeriods.length - 1) {
+      setSelectedPeriod(uniquePeriods[currentIndex + 1])
+    }
+  }
+
+  const navigateToNextPeriod = () => {
+    const currentIndex = uniquePeriods.findIndex(
+      (p) => p === (selectedPeriod === "current" ? getCurrentPeriod() : selectedPeriod),
+    )
+    if (currentIndex > 0) {
+      setSelectedPeriod(uniquePeriods[currentIndex - 1])
+    } else if (currentIndex === 0 && selectedPeriod !== "current") {
+      setSelectedPeriod("current")
+    }
+  }
+
+  const isFirstPeriod = () => {
+    return (
+      selectedPeriod === "current" || (selectedPeriod === uniquePeriods[0] && uniquePeriods[0] === getCurrentPeriod())
+    )
+  }
+
+  const isLastPeriod = () => {
+    return selectedPeriod === uniquePeriods[uniquePeriods.length - 1]
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -455,7 +489,50 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         </Alert>
       )}
 
-      {/* Admin Dashboard Cards */}
+      <div className="flex items-center justify-center gap-2 py-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={navigateToPreviousPeriod}
+          disabled={isLastPeriod()}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCalendarOpen(true)}
+          className="flex items-center gap-2 min-w-[280px] justify-center px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <Calendar className="h-4 w-4 text-custom-primary" />
+          <span className="font-medium text-sm text-custom-text-primary dark:text-custom-text-primary-dark">
+            {selectedPeriodDisplay}
+          </span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={navigateToNextPeriod}
+          disabled={isFirstPeriod()}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+      </div>
+
+      <PeriodCalendar
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        periods={uniquePeriods}
+        selectedPeriod={selectedPeriod}
+        onPeriodSelect={setSelectedPeriod}
+        getCurrentPeriod={getCurrentPeriod}
+        getInvoicePeriod={getInvoicePeriod}
+      />
+
       {userRole === "admin" && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
@@ -497,7 +574,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
             </Card>
           </div>
 
-          {/* Gastos por Cartão - Collapsible */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -550,7 +626,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         </>
       )}
 
-      {/* User Dashboard Cards */}
       {userRole === "user" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
           <Card>
@@ -581,9 +656,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         </div>
       )}
 
-      {/* Filtros e Ações - Layout Vertical em Mobile */}
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
-        {/* Botão de Filtros em Modal */}
         <Dialog open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
           <DialogTrigger asChild>
             <Button
@@ -606,33 +679,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
               <DialogDescription>Configure os filtros para visualizar as movimentações</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              {/* Filtro de Período */}
-              <div className="space-y-2">
-                <Label htmlFor="filter-period" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Período
-                </Label>
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger id="filter-period">
-                    <SelectValue placeholder="Filtrar por período" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="current">{currentPeriodDisplay} (Vigente)</SelectItem>
-                    {uniquePeriods
-                      .filter((period) => period !== getCurrentPeriod())
-                      .map((period) => {
-                        const { periodDisplay } = getInvoicePeriod(new Date(`${period}-01`))
-                        return (
-                          <SelectItem key={period} value={period}>
-                            {periodDisplay}
-                          </SelectItem>
-                        )
-                      })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filtro de Usuário (Admin) */}
               {userRole === "admin" && users.length > 0 && (
                 <div className="space-y-2">
                   <Label htmlFor="filter-user" className="flex items-center gap-2">
@@ -655,7 +701,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
                 </div>
               )}
 
-              {/* Filtro de Cartão (Admin) */}
               {userRole === "admin" && cards.length > 0 && (
                 <div className="space-y-2">
                   <Label htmlFor="filter-card" className="flex items-center gap-2">
@@ -678,12 +723,10 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
                 </div>
               )}
 
-              {/* Botões de Ação */}
               <div className="flex justify-between pt-4">
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setSelectedPeriod("current")
                     setSelectedUser("all")
                     setSelectedCard("all")
                   }}
@@ -696,7 +739,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           </DialogContent>
         </Dialog>
 
-        {/* Botão Único para Adicionar */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="flex items-center justify-center gap-2 bg-custom-primary hover:bg-custom-primary-dark text-white w-full sm:w-auto">
@@ -771,7 +813,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         />
       )}
 
-      {/* Edit Expense Modal */}
       {!hasNoCards && userRole === "admin" && (
         <EditExpenseModal
           isOpen={isEditExpenseModalOpen}
@@ -785,16 +826,5 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         />
       )}
     </div>
-  )
-}
-
-function Label({ children, htmlFor, className }: { children: React.ReactNode; htmlFor?: string; className?: string }) {
-  return (
-    <label
-      htmlFor={htmlFor}
-      className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className || ""}`}
-    >
-      {children}
-    </label>
   )
 }

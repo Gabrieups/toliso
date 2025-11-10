@@ -6,9 +6,8 @@ import { useAlertModal } from "@/hooks/use-alert-modal"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Filter, AlertCircle, Minus, Calendar, Wallet, Settings, Receipt } from "lucide-react"
+import { Plus, AlertCircle, Minus, Calendar, Wallet, Receipt, ChevronLeft, ChevronRight } from "lucide-react"
 import { AddExpenseModal } from "@/components/add-expense-modal"
 import { AddEntryModal } from "@/components/add-entry-modal"
 import { TransactionHistory } from "@/components/transaction-history"
@@ -17,15 +16,8 @@ import { getTransactionsAction, deleteTransactionAction } from "@/app/actions/tr
 import { getEntriesAction, deleteEntryAction } from "@/app/actions/entries"
 import { getCardsAction } from "@/app/actions/cards"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { PeriodCalendar } from "@/components/period-calendar"
 
 interface Transaction {
   id: string
@@ -73,6 +65,7 @@ export function Home({ onLogout, userRole }: HomeProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState<string>("current")
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
 
   useEffect(() => {
@@ -151,7 +144,7 @@ export function Home({ onLogout, userRole }: HomeProps) {
 
       const startDay = `16/${month.toString().padStart(2, "0")}`
       const endDay = `15/${nextMonth.toString().padStart(2, "0")}`
-      const periodDisplay = `${monthNames[nextMonth - 1]} (${startDay} - ${endDay})`
+      const periodDisplay = `${monthNames[nextMonth - 1]}/${nextYear} (${startDay} - ${endDay})`
 
       return { period, periodDisplay }
     } else {
@@ -161,7 +154,7 @@ export function Home({ onLogout, userRole }: HomeProps) {
       const prevYear = month === 1 ? year - 1 : year
       const startDay = `16/${prevMonth.toString().padStart(2, "0")}`
       const endDay = `15/${month.toString().padStart(2, "0")}`
-      const periodDisplay = `${monthNames[month - 1]} (${startDay} - ${endDay})`
+      const periodDisplay = `${monthNames[month - 1]}/${year} (${startDay} - ${endDay})`
 
       return { period, periodDisplay }
     }
@@ -262,6 +255,36 @@ export function Home({ onLogout, userRole }: HomeProps) {
 
   const selectedPeriodDisplay = getSelectedPeriodDisplay()
 
+  const navigateToPreviousPeriod = () => {
+    const currentIndex = uniquePeriods.findIndex(
+      (p) => p === (selectedPeriod === "current" ? getCurrentPeriod() : selectedPeriod),
+    )
+    if (currentIndex < uniquePeriods.length - 1) {
+      setSelectedPeriod(uniquePeriods[currentIndex + 1])
+    }
+  }
+
+  const navigateToNextPeriod = () => {
+    const currentIndex = uniquePeriods.findIndex(
+      (p) => p === (selectedPeriod === "current" ? getCurrentPeriod() : selectedPeriod),
+    )
+    if (currentIndex > 0) {
+      setSelectedPeriod(uniquePeriods[currentIndex - 1])
+    } else if (currentIndex === 0 && selectedPeriod !== "current") {
+      setSelectedPeriod("current")
+    }
+  }
+
+  const isFirstPeriod = () => {
+    return (
+      selectedPeriod === "current" || (selectedPeriod === uniquePeriods[0] && uniquePeriods[0] === getCurrentPeriod())
+    )
+  }
+
+  const isLastPeriod = () => {
+    return selectedPeriod === uniquePeriods[uniquePeriods.length - 1]
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -284,7 +307,50 @@ export function Home({ onLogout, userRole }: HomeProps) {
         </Alert>
       )}
 
-      {/* Cards de Resumo */}
+      <div className="flex items-center justify-center gap-2 py-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={navigateToPreviousPeriod}
+          disabled={isLastPeriod()}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCalendarOpen(true)}
+          className="flex items-center gap-2 min-w-[280px] justify-center px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <Calendar className="h-4 w-4 text-custom-primary" />
+          <span className="font-medium text-sm text-custom-text-primary dark:text-custom-text-primary-dark">
+            {selectedPeriodDisplay}
+          </span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={navigateToNextPeriod}
+          disabled={isFirstPeriod()}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+      </div>
+
+      <PeriodCalendar
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        periods={uniquePeriods}
+        selectedPeriod={selectedPeriod}
+        onPeriodSelect={setSelectedPeriod}
+        getCurrentPeriod={getCurrentPeriod}
+        getInvoicePeriod={getInvoicePeriod}
+      />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -313,70 +379,7 @@ export function Home({ onLogout, userRole }: HomeProps) {
         </Card>
       </div>
 
-      {/* Filtros e Ações */}
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
-        {/* Botão de Filtros */}
-        <Dialog open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="flex items-center justify-center gap-2 bg-transparent w-full sm:w-auto"
-            >
-              <Settings className="h-4 w-4" />
-              Filtrar Período
-              {selectedPeriod !== "current" && <span className="ml-1 h-2 w-2 rounded-full bg-custom-primary" />}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtro de Período
-              </DialogTitle>
-              <DialogDescription>Selecione o período para visualizar suas movimentações</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="filter-period" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Período
-                </Label>
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger id="filter-period">
-                    <SelectValue placeholder="Filtrar por período" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="current">{currentPeriodDisplay} (Vigente)</SelectItem>
-                    {uniquePeriods
-                      .filter((period) => period !== getCurrentPeriod())
-                      .map((period) => {
-                        const { periodDisplay } = getInvoicePeriod(new Date(`${period}-01`))
-                        return (
-                          <SelectItem key={period} value={period}>
-                            {periodDisplay}
-                          </SelectItem>
-                        )
-                      })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedPeriod("current")
-                  }}
-                >
-                  Resetar
-                </Button>
-                <Button onClick={() => setIsFiltersOpen(false)}>Aplicar</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Botão de Adicionar */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="flex items-center justify-center gap-2 bg-custom-primary hover:bg-custom-primary-dark text-white w-full sm:w-auto">
@@ -397,7 +400,6 @@ export function Home({ onLogout, userRole }: HomeProps) {
         </DropdownMenu>
       </div>
 
-      {/* Histórico */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl">Minhas Movimentações</CardTitle>

@@ -5,7 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Plus, Minus, Receipt, Filter, ChevronDown, ChevronUp, Trash2 } from "lucide-react"
+import {
+  Calendar,
+  Plus,
+  Minus,
+  Receipt,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { getInvoicesAction } from "@/app/actions/invoices"
 import { getCardsAction } from "@/app/actions/cards"
 import { deleteEntryAction } from "@/app/actions/entries"
@@ -13,6 +24,7 @@ import { AddEntryModal } from "@/components/add-entry-modal"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { CardBrandIcon } from "@/components/card-brand-icon"
 import { useAlertModal } from "@/hooks/use-alert-modal"
+import { PeriodCalendar } from "@/components/period-calendar"
 
 interface Invoice {
   cardId: string
@@ -46,6 +58,7 @@ export function Invoices() {
   const [isLoading, setIsLoading] = useState(true)
   const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(new Set())
   const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set())
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
 
   useEffect(() => {
@@ -143,6 +156,74 @@ export function Invoices() {
     .sort()
     .reverse()
 
+  const getPeriodDisplayForSelect = (period: string) => {
+    const { periodDisplay } = getInvoicePeriod(new Date(`${period}-01`))
+    return periodDisplay
+  }
+
+  // Helper to get invoice period with year in display
+  const getInvoicePeriod = (date: Date): { period: string; periodDisplay: string } => {
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+
+    const monthNames = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
+
+    if (day >= 16) {
+      const nextMonth = month === 12 ? 1 : month + 1
+      const nextYear = month === 12 ? year + 1 : year
+      const period = `${nextYear}-${nextMonth.toString().padStart(2, "0")}`
+
+      const startDay = `16/${month.toString().padStart(2, "0")}`
+      const endDay = `15/${nextMonth.toString().padStart(2, "0")}`
+      const periodDisplay = `${monthNames[nextMonth - 1]}/${nextYear} (${startDay} - ${endDay})`
+
+      return { period, periodDisplay }
+    } else {
+      const period = `${year}-${month.toString().padStart(2, "0")}`
+
+      const prevMonth = month === 1 ? 12 : month - 1
+      const prevYear = month === 1 ? year - 1 : year
+      const startDay = `16/${prevMonth.toString().padStart(2, "0")}`
+      const endDay = `15/${month.toString().padStart(2, "0")}`
+      const periodDisplay = `${monthNames[month - 1]}/${year} (${startDay} - ${endDay})`
+
+      return { period, periodDisplay }
+    }
+  }
+
+  const getCurrentPeriod = () => {
+    return getInvoicePeriod(new Date()).period
+  }
+
+  const getSelectedPeriodDisplay = () => {
+    const invoice = invoices.find((inv) => inv.period === selectedPeriod)
+    const paymentBlock = paymentBlocks.find((pb) => pb.period === selectedPeriod)
+    return invoice?.periodDisplay || paymentBlock?.periodDisplay || getPeriodDisplayForSelect(selectedPeriod)
+  }
+
+  const navigateToPreviousPeriod = () => {
+    const currentIndex = uniquePeriods.findIndex((p) => p === selectedPeriod)
+    if (currentIndex < uniquePeriods.length - 1) {
+      setSelectedPeriod(uniquePeriods[currentIndex + 1])
+    }
+  }
+
+  const navigateToNextPeriod = () => {
+    const currentIndex = uniquePeriods.findIndex((p) => p === selectedPeriod)
+    if (currentIndex > 0) {
+      setSelectedPeriod(uniquePeriods[currentIndex - 1])
+    }
+  }
+
+  const isFirstPeriod = () => {
+    return selectedPeriod === uniquePeriods[0]
+  }
+
+  const isLastPeriod = () => {
+    return selectedPeriod === uniquePeriods[uniquePeriods.length - 1]
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -171,6 +252,52 @@ export function Invoices() {
         </Button>
       </div>
 
+      {uniquePeriods.length > 0 && (
+        <div className="flex items-center justify-center gap-2 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={navigateToPreviousPeriod}
+            disabled={isLastPeriod()}
+            className="h-10 w-10 p-0"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCalendarOpen(true)}
+            className="flex items-center gap-2 min-w-[280px] justify-center px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <Calendar className="h-4 w-4 text-custom-primary" />
+            <span className="font-medium text-sm text-custom-text-primary dark:text-custom-text-primary-dark">
+              {getSelectedPeriodDisplay()}
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={navigateToNextPeriod}
+            disabled={isFirstPeriod()}
+            className="h-10 w-10 p-0"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
+
+      <PeriodCalendar
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        periods={uniquePeriods}
+        selectedPeriod={selectedPeriod}
+        onPeriodSelect={setSelectedPeriod}
+        getCurrentPeriod={getCurrentPeriod}
+        getInvoicePeriod={getInvoicePeriod}
+      />
+
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:space-x-4">
         {cards.length > 0 && (
           <div className="flex items-center space-x-2">
@@ -186,30 +313,6 @@ export function Invoices() {
                     {card}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {uniquePeriods.length > 0 && (
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-full sm:w-[250px]">
-                <SelectValue placeholder="Filtrar por período" />
-              </SelectTrigger>
-              <SelectContent>
-                {uniquePeriods.map((period) => {
-                  const invoice = invoices.find((inv) => inv.period === period)
-                  const paymentBlock = paymentBlocks.find((pb) => pb.period === period)
-                  const periodDisplay = invoice?.periodDisplay || paymentBlock?.periodDisplay || period
-                  const isCurrent = period === uniquePeriods[0]
-                  return (
-                    <SelectItem key={period} value={period}>
-                      {periodDisplay} {isCurrent && "(Vigente)"}
-                    </SelectItem>
-                  )
-                })}
               </SelectContent>
             </Select>
           </div>

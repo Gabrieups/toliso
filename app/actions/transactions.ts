@@ -10,6 +10,23 @@ interface CustomShare {
   amount: string
 }
 
+// Helper function to calculate invoice period based on card closing date
+function getInvoicePeriodForCard(date: Date, closingDate: number): string {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+
+  if (day >= closingDate) {
+    // Assign to next month
+    const nextMonth = month === 12 ? 1 : month + 1
+    const nextYear = month === 12 ? year + 1 : year
+    return `${nextYear}-${nextMonth.toString().padStart(2, "0")}`
+  } else {
+    // Assign to current month
+    return `${year}-${month.toString().padStart(2, "0")}`
+  }
+}
+
 export async function createTransactionAction(formData: FormData) {
   const currentUser = await getCurrentUser()
 
@@ -43,7 +60,7 @@ export async function createTransactionAction(formData: FormData) {
   }
 
   try {
-    // Buscar o cartão para obter o ID
+    // Buscar o cartão para obter o ID e a data de fechamento
     const cards = await cardService.getAll()
     const selectedCard = cards.find((card) => card.name === cardName)
 
@@ -128,6 +145,16 @@ export async function createTransactionAction(formData: FormData) {
 
     const baseDate = customDate ? new Date(customDate) : new Date()
 
+    // Se sim, ajustar a data para o próximo período
+    const expenseDay = baseDate.getDate()
+    if (expenseDay >= selectedCard.closingDate) {
+      // A despesa será lançada no próximo período - não precisa ajustar a data,
+      // apenas o sistema vai calcular o período correto automaticamente
+      console.log(
+        `[v0] Despesa em ${baseDate.toISOString()} está após o dia de fechamento (${selectedCard.closingDate}). Será lançada no próximo período.`,
+      )
+    }
+
     // Criar transações para cada mês (se recorrente)
     for (let month = 0; month < monthsToCreate; month++) {
       // Criar transações para cada usuário
@@ -211,6 +238,12 @@ export async function createTransactionAction(formData: FormData) {
     if (currentUser.role === "admin" && targetUserId && targetUserId !== currentUser.id) {
       message += ` para ${primaryUser.name}`
     }
+
+    const expensePeriod = getInvoicePeriodForCard(baseDate, selectedCard.closingDate)
+    const periodDate = new Date(`${expensePeriod}-01`)
+    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+    const periodDisplay = `${monthNames[periodDate.getMonth()]}/${periodDate.getFullYear()}`
+    message += ` na fatura de ${periodDisplay}`
 
     return {
       success: true,
