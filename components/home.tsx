@@ -271,14 +271,17 @@ export function Home({ onLogout, userRole }: HomeProps) {
     if (currentIndex > 0) {
       setSelectedPeriod(uniquePeriods[currentIndex - 1])
     } else if (currentIndex === 0 && selectedPeriod !== "current") {
-      setSelectedPeriod("current")
+      const currentPeriod = getCurrentPeriod()
+      if (uniquePeriods[0] === currentPeriod) {
+        setSelectedPeriod("current")
+      }
     }
   }
 
   const isFirstPeriod = () => {
-    return (
-      selectedPeriod === "current" || (selectedPeriod === uniquePeriods[0] && uniquePeriods[0] === getCurrentPeriod())
-    )
+    const currentPeriod = getCurrentPeriod()
+    // If we're viewing the current period OR the selected period is the most recent in the list
+    return selectedPeriod === currentPeriod || selectedPeriod === uniquePeriods[0]
   }
 
   const isLastPeriod = () => {
@@ -307,13 +310,13 @@ export function Home({ onLogout, userRole }: HomeProps) {
         </Alert>
       )}
 
-      <div className="flex items-center justify-center gap-2 py-2">
+      <div className="flex items-center justify-between gap-2 py-2 w-full max-w-full overflow-hidden px-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={navigateToPreviousPeriod}
           disabled={isLastPeriod()}
-          className="h-10 w-10 p-0"
+          className="h-10 w-10 p-0 flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -322,10 +325,10 @@ export function Home({ onLogout, userRole }: HomeProps) {
           variant="ghost"
           size="sm"
           onClick={() => setIsCalendarOpen(true)}
-          className="flex items-center gap-2 min-w-[280px] justify-center px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="flex items-center gap-2 flex-1 max-w-[280px] justify-center px-2 sm:px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
-          <Calendar className="h-4 w-4 text-custom-primary" />
-          <span className="font-medium text-sm text-custom-text-primary dark:text-custom-text-primary-dark">
+          <Calendar className="h-4 w-4 text-custom-primary flex-shrink-0" />
+          <span className="font-medium text-xs sm:text-sm text-custom-text-primary dark:text-custom-text-primary-dark truncate">
             {selectedPeriodDisplay}
           </span>
         </Button>
@@ -335,7 +338,7 @@ export function Home({ onLogout, userRole }: HomeProps) {
           size="sm"
           onClick={navigateToNextPeriod}
           disabled={isFirstPeriod()}
-          className="h-10 w-10 p-0"
+          className="h-10 w-10 p-0 flex-shrink-0"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
