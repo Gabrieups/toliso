@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
 
 interface PeriodCalendarProps {
   isOpen: boolean
@@ -79,8 +79,18 @@ export function PeriodCalendar({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <div className="relative">
+          {/* Close button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="absolute -top-2 -right-2 h-8 w-8 p-0 rounded-full"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+
           {/* Year navigation */}
-          <div className="flex items-center justify-center gap-4 mb-6">
+          <div className="flex items-center justify-center gap-4 mb-6 pt-2">
             <Button
               variant="ghost"
               size="sm"
