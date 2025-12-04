@@ -259,7 +259,7 @@ export function Invoices() {
             size="sm"
             onClick={navigateToPreviousPeriod}
             disabled={isLastPeriod()}
-            className="h-10 w-10 p-0"
+            className="h-10 w-10 p-0 flex items-center justify-center"
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
@@ -281,7 +281,7 @@ export function Invoices() {
             size="sm"
             onClick={navigateToNextPeriod}
             disabled={isFirstPeriod()}
-            className="h-10 w-10 p-0"
+            className="h-10 w-10 p-0 flex items-center justify-center"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>

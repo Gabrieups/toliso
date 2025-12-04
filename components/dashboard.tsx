@@ -42,26 +42,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { PeriodCalendar } from "@/components/period-calendar"
-
-interface Transaction {
-  id: string
-  title: string
-  description: string
-  amount: number
-  originalAmount?: number
-  cardName: string
-  date: string
-  userId: string
-  userName: string
-  userEmail: string
-  isInstallment?: boolean
-  totalInstallments?: number
-  currentInstallment?: number
-  isShared?: boolean
-  sharedWith?: string[]
-  sharedUserNames?: string[]
-  installmentGroup?: string
-}
+import { Transaction } from "@/types/transaction"
 
 interface Entry {
   id: string
@@ -495,7 +476,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           size="sm"
           onClick={navigateToPreviousPeriod}
           disabled={isLastPeriod()}
-          className="h-10 w-10 p-0"
+          className="h-10 w-10 p-0 flex items-center justify-center"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -517,7 +498,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           size="sm"
           onClick={navigateToNextPeriod}
           disabled={isFirstPeriod()}
-          className="h-10 w-10 p-0"
+          className="h-10 w-10 p-0 flex items-center justify-center"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>

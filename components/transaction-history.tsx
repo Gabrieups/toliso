@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Trash2, Calendar, CreditCard, User, Users, Hash, Pencil } from "lucide-react"
 import { CardBrandIcon } from "@/components/card-brand-icon"
+import { Transaction } from "@/types/transaction"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,24 +16,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-
-interface Transaction {
-  id: string
-  title: string
-  description: string
-  amount: number
-  originalAmount?: number
-  cardName: string
-  date: string
-  userId?: string
-  userName?: string
-  userEmail?: string
-  isInstallment?: boolean
-  totalInstallments?: number
-  currentInstallment?: number
-  isShared?: boolean
-  sharedUserNames?: string[]
-}
 
 interface CardData {
   id: string
