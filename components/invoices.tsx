@@ -233,7 +233,7 @@ export function Invoices() {
   }
 
   return (
-    <div className="flex flex-col space-y-4 sm:space-y-6 p-2 sm:p-4 overflow-auto">
+    <div className="flex flex-col space-y-4 sm:space-y-6 p-2 sm:p-4">
       <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-custom-text-primary dark:text-custom-text-primary-dark">
@@ -253,13 +253,13 @@ export function Invoices() {
       </div>
 
       {uniquePeriods.length > 0 && (
-        <div className="flex items-center justify-center gap-2 py-2">
+        <div className="flex items-center justify-center gap-2 py-2 w-full">
           <Button
             variant="ghost"
             size="sm"
             onClick={navigateToPreviousPeriod}
             disabled={isLastPeriod()}
-            className="h-10 w-10 p-0 flex items-center justify-center"
+            className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
@@ -268,10 +268,10 @@ export function Invoices() {
             variant="ghost"
             size="sm"
             onClick={() => setIsCalendarOpen(true)}
-            className="flex items-center gap-2 min-w-[280px] justify-center px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex items-center gap-2 justify-center px-2 sm:px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 max-w-[280px]"
           >
-            <Calendar className="h-4 w-4 text-custom-primary" />
-            <span className="font-medium text-sm text-custom-text-primary dark:text-custom-text-primary-dark">
+            <Calendar className="h-4 w-4 text-custom-primary flex-shrink-0" />
+            <span className="font-medium text-xs sm:text-sm text-custom-text-primary dark:text-custom-text-primary-dark truncate">
               {getSelectedPeriodDisplay()}
             </span>
           </Button>
@@ -281,7 +281,7 @@ export function Invoices() {
             size="sm"
             onClick={navigateToNextPeriod}
             disabled={isFirstPeriod()}
-            className="h-10 w-10 p-0 flex items-center justify-center"
+            className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
