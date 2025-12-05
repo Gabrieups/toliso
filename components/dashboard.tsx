@@ -470,13 +470,13 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         </Alert>
       )}
 
-      <div className="flex items-center justify-center gap-2 py-2">
+      <div className="flex items-center justify-between gap-2 py-2 w-full max-w-full overflow-hidden px-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={navigateToPreviousPeriod}
           disabled={isLastPeriod()}
-          className="h-10 w-10 p-0 flex items-center justify-center"
+          className="h-10 w-10 p-0 flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
