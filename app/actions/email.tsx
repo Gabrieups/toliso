@@ -129,7 +129,7 @@ export async function sendIndividualExpenseReportAction(userId: string) {
 
                       <tr>
                         <td align="center">
-                          <p>Acesse a plataforma para ver mais detalhes sobre suas despesas.</p>
+                          <p>Acesse a plataforma com a senha <strong>123456</strong> para ver mais detalhes sobre suas despesas.</p>
                           <a href="https://toliso.hezo.dev.br/" 
                             style="display: inline-block; padding: 10px 20px; background-color: #2ECC71; color: #fff; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; margin-top: 20px;">
                             Ir para a plataforma
