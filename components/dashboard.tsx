@@ -180,9 +180,9 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   }
 
   const getInvoicePeriod = (date: Date): { period: string; periodDisplay: string } => {
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1
-    const day = date.getDate()
+    const year = date.getUTCFullYear()
+    const month = date.getUTCMonth() + 1
+    const day = date.getUTCDate()
 
     const monthNames = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
 
@@ -200,7 +200,6 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
       const period = `${year}-${month.toString().padStart(2, "0")}`
 
       const prevMonth = month === 1 ? 12 : month - 1
-      const prevYear = month === 1 ? year - 1 : year
       const startDay = `16/${prevMonth.toString().padStart(2, "0")}`
       const endDay = `15/${month.toString().padStart(2, "0")}`
       const periodDisplay = `${monthNames[month - 1]}/${year} (${startDay} - ${endDay})`
