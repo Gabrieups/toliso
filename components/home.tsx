@@ -230,8 +230,8 @@ export function Home({ onLogout, userRole }: HomeProps) {
     })
   }
 
-  const userTotalExpenses = periodFilteredTransactions.reduce((sum, t) => sum + t.amount, 0)
-  const userTotalPayments = periodFilteredEntries.reduce((sum, e) => sum + e.amount, 0)
+  const userTotalExpenses = periodFilteredTransactions.reduce((sum, t) => sum + Number(t.amount), 0)
+  const userTotalPayments = periodFilteredEntries.reduce((sum, e) => sum + Number(e.amount), 0)
 
   const uniquePeriods = [
     ...new Set([

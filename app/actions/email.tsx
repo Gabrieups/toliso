@@ -71,10 +71,7 @@ export async function sendIndividualExpenseReportAction(userId: string) {
       return transactionPeriod === currentPeriod
     })
 
-    const totalExpenses = userTransactions.reduce(
-      (sum, t) => sum + Number(t.amount),
-      0
-    )
+    const totalExpenses = userTransactions.reduce((sum, t) => sum + Number(t.amount), 0)
 
     const userExpenseData = {
       name: user.name,

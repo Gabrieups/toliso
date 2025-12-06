@@ -650,13 +650,13 @@ export const invoiceService = {
       }
 
       for (const [period, { transactions: periodTransactions, periodDisplay }] of transactionsByPeriod) {
-        const totalExpenses = periodTransactions.reduce((sum, t) => sum + t.amount, 0)
+        const totalExpenses = periodTransactions.reduce((sum, t) => sum + Number(t.amount), 0)
 
         const periodEntries = entries.filter((entry) => {
           const { period: entryPeriod } = this.getInvoicePeriod(new Date(entry.date), card.closingDate)
           return entryPeriod === period
         })
-        const paymentsApplied = periodEntries.reduce((sum, e) => sum + e.amount, 0)
+        const paymentsApplied = periodEntries.reduce((sum, e) => sum + Number(e.amount), 0)
 
         invoices.push({
           cardId: card.id,
@@ -687,7 +687,7 @@ export const invoiceService = {
 
     const paymentBlocks: PaymentBlock[] = []
     for (const [period, { entries: periodEntries, periodDisplay }] of entriesByPeriod) {
-      const totalEntries = periodEntries.reduce((sum, e) => sum + e.amount, 0)
+      const totalEntries = periodEntries.reduce((sum, e) => sum + Number(e.amount), 0)
 
       paymentBlocks.push({
         period,

@@ -138,7 +138,7 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
     }
 
     if (formData.isShared && divisionType === "custom") {
-      const totalShares = userShares.reduce((sum, share) => sum + Number.parseFloat(share.amount || "0"), 0)
+      const totalShares = userShares.reduce((sum, t) => sum + Number(t.amount), 0)
       const totalAmount = Number.parseFloat(formData.amount.replace(",", "."))
 
       if (Math.abs(totalShares - totalAmount) > 0.01) {
@@ -253,7 +253,7 @@ export function AddExpenseModal({ isOpen, onClose, onAddExpense, cards }: AddExp
   }
 
   const calculateCustomTotal = () => {
-    return userShares.reduce((sum, share) => sum + Number.parseFloat(share.amount || "0"), 0).toFixed(2)
+    return userShares.reduce((sum, t) => sum + Number(t.amount), 0).toFixed(2)
   }
 
   const calculateInstallmentAmount = () => {

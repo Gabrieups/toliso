@@ -100,8 +100,8 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
           id: t.id,
           title: t.title,
           description: t.description,
-          amount: t.amount,
-          originalAmount: t.originalAmount,
+          amount: Number(t.amount),
+          originalAmount: t.originalAmount ? Number(t.originalAmount) : undefined,
           cardName: t.cardName,
           date: t.date,
           userId: t.userId,
@@ -335,7 +335,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   // Admin stats
   const adminCardExpenses: CardExpense[] = cards.map((card) => {
     const cardTransactions = allUsersSelectedPeriodTransactions.filter((t) => t.cardName === card.name)
-    const total = cardTransactions.reduce((sum, t) => sum + t.amount, 0)
+    const total = cardTransactions.reduce((sum, t) => sum + Number(t.amount), 0)
     return {
       cardName: card.name,
       cardColor: card.color,
@@ -343,12 +343,12 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
     }
   })
 
-  const adminMyExpenses = mySelectedPeriodTransactions.reduce((sum, t) => sum + t.amount, 0)
-  const adminMyPayments = mySelectedPeriodEntries.reduce((sum, e) => sum + e.amount, 0)
+  const adminMyExpenses = mySelectedPeriodTransactions.reduce((sum, t) => sum + Number(t.amount), 0)
+  const adminMyPayments = mySelectedPeriodEntries.reduce((sum, e) => sum + Number(e.amount), 0)
 
   // User stats
-  const userTotalExpenses = mySelectedPeriodTransactions.reduce((sum, t) => sum + t.amount, 0)
-  const userTotalPayments = mySelectedPeriodEntries.reduce((sum, e) => sum + e.amount, 0)
+  const userTotalExpenses = mySelectedPeriodTransactions.reduce((sum, t) => sum + Number(t.amount), 0)
+  const userTotalPayments = mySelectedPeriodEntries.reduce((sum, e) => sum + Number(e.amount), 0)
 
   const uniquePeriods = [
     ...new Set([
@@ -526,7 +526,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
                 <div className="text-xl sm:text-2xl font-bold text-red-600">
                   R${" "}
                   {allUsersSelectedPeriodTransactions
-                    .reduce((sum, t) => sum + t.amount, 0)
+                    .reduce((sum, t) => sum + Number(t.amount), 0)
                     .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground">{selectedPeriodDisplay}</p>
@@ -547,7 +547,7 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
                       const targetPeriod = selectedPeriod === "current" ? getCurrentPeriod() : selectedPeriod
                       return period === targetPeriod
                     })
-                    .reduce((sum, e) => sum + e.amount, 0)
+                    .reduce((sum, e) => sum + Number(e.amount), 0)
                     .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground">{selectedPeriodDisplay}</p>
