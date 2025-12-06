@@ -15,8 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar, CreditCard } from "lucide-react"
-import { editTransactionAction } from "@/app/actions/transactions"
+import { Calendar, CreditCard, User } from "lucide-react"
+import { editTransactionAction, getActiveUsersAction } from "@/app/actions/transactions"
 import { useAlertModal } from "@/hooks/use-alert-modal"
 
 interface Transaction {
@@ -26,6 +26,11 @@ interface Transaction {
   amount: number
   cardName: string
   date: string
+  userId: string
+  userName: string
+  isInstallment?: boolean
+  totalInstallments?: number
+  installmentGroup?: string
 }
 
 interface EditExpenseModalProps {
@@ -36,6 +41,12 @@ interface EditExpenseModalProps {
   cards: string[]
 }
 
+interface ActiveUser {
+  id: string
+  name: string
+  email: string
+}
+
 export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, cards }: EditExpenseModalProps) {
   const [formData, setFormData] = useState({
     title: "",
@@ -43,18 +54,43 @@ export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, 
     amount: "",
     card: "",
     date: "",
+    targetUserId: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([])
   const alertModal = useAlertModal()
 
   useEffect(() => {
+    if (isOpen) {
+      loadActiveUsers()
+    }
+  }, [isOpen])
+
+  const loadActiveUsers = async () => {
+    try {
+      const result = await getActiveUsersAction()
+      if (result.success && result.users) {
+        setActiveUsers(result.users)
+      }
+    } catch (error) {
+      console.error("Erro ao carregar usuários:", error)
+    }
+  }
+
+  useEffect(() => {
     if (transaction && isOpen) {
+      let cleanTitle = transaction.title
+      if (transaction.isInstallment && transaction.totalInstallments) {
+        cleanTitle = transaction.title.replace(/ $$\d+\/\d+$$$/, "")
+      }
+
       setFormData({
-        title: transaction.title,
+        title: cleanTitle,
         description: transaction.description || "",
         amount: transaction.amount.toString().replace(".", ","),
         card: transaction.cardName,
         date: transaction.date.split("T")[0],
+        targetUserId: transaction.userId,
       })
     }
   }, [transaction, isOpen])
@@ -74,6 +110,7 @@ export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, 
     formDataObj.append("amount", formData.amount)
     formDataObj.append("card", formData.card)
     formDataObj.append("date", formData.date)
+    formDataObj.append("targetUserId", formData.targetUserId)
 
     try {
       const result = await editTransactionAction(transaction.id, formDataObj)
@@ -108,6 +145,7 @@ export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, 
       amount: "",
       card: "",
       date: "",
+      targetUserId: "",
     })
   }
 
@@ -126,11 +164,42 @@ export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, 
             <CreditCard className="h-5 w-5" />
             Editar Despesa
           </DialogTitle>
-          <DialogDescription>Atualize os dados da despesa selecionada.</DialogDescription>
+          <DialogDescription>
+            Atualize os dados da despesa selecionada.
+            {transaction.isInstallment && transaction.totalInstallments && (
+              <span className="block mt-2 text-yellow-600 font-medium">
+                ⚠️ Esta despesa é parcelada ({transaction.totalInstallments}x). Todas as parcelas serão atualizadas
+                proporcionalmente.
+              </span>
+            )}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="targetUserId" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Usuário Responsável *
+              </Label>
+              <Select
+                value={formData.targetUserId}
+                onValueChange={(value) => setFormData({ ...formData, targetUserId: value })}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o usuário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="title">Título *</Label>
               <Input
@@ -156,7 +225,7 @@ export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Valor *</Label>
+              <Label htmlFor="amount">Valor {transaction.isInstallment ? "por parcela" : ""} *</Label>
               <Input
                 id="amount"
                 type="text"
@@ -194,7 +263,7 @@ export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, 
             <div className="space-y-2">
               <Label htmlFor="date" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                Data da Despesa *
+                Data da {transaction.isInstallment ? "Primeira Parcela" : "Despesa"} *
               </Label>
               <Input
                 id="date"
@@ -204,6 +273,11 @@ export function EditExpenseModal({ isOpen, onClose, onEditExpense, transaction, 
                 required
                 disabled={isLoading}
               />
+              {transaction.isInstallment && (
+                <p className="text-xs text-muted-foreground">
+                  As demais parcelas serão ajustadas automaticamente com base nesta data
+                </p>
+              )}
             </div>
           </div>
 

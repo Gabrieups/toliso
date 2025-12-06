@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Users, Plus, Search, Edit, Trash2, Shield, User, Mail, Loader2 } from "lucide-react"
+import { Users, Plus, Search, Edit, Trash2, Shield, User, Mail, Loader2, Send } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,12 @@ interface AdminUser {
   status: "active" | "inactive"
 }
 
+interface UserBalance {
+  balance: number
+  totalExpenses: number
+  totalPayments: number
+}
+
 export function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -45,11 +51,20 @@ export function AdminUsers() {
     status: "active" as "active" | "inactive",
   })
   const [isSendingEmails, setIsSendingEmails] = useState(false)
+  const [sendingEmailTo, setSendingEmailTo] = useState<string | null>(null)
+  const [userBalances, setUserBalances] = useState<Record<string, UserBalance>>({})
+  const [loadingBalances, setLoadingBalances] = useState(false)
   const alertModal = useAlertModal()
 
   useEffect(() => {
     loadUsers()
   }, [])
+
+  useEffect(() => {
+    if (users.length > 0) {
+      loadUserBalances()
+    }
+  }, [users])
 
   const loadUsers = async () => {
     setIsLoading(true)
@@ -62,6 +77,25 @@ export function AdminUsers() {
       console.error("Erro ao carregar usuários:", error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadUserBalances = async () => {
+    setLoadingBalances(true)
+    try {
+      const { calculateUserBalance } = await import("@/app/actions/email")
+      const balances: Record<string, UserBalance> = {}
+
+      for (const user of users) {
+        const balance = await calculateUserBalance(user.id)
+        balances[user.id] = balance
+      }
+
+      setUserBalances(balances)
+    } catch (error) {
+      console.error("Erro ao carregar saldos:", error)
+    } finally {
+      setLoadingBalances(false)
     }
   }
 
@@ -194,6 +228,43 @@ export function AdminUsers() {
     })
   }
 
+  const handleSendIndividualEmail = async (userId: string, userName: string) => {
+    alertModal.open({
+      variant: "warning",
+      title: "Enviar relatório",
+      message: `Deseja enviar o relatório de gastos para ${userName}?`,
+      showCancel: true,
+      confirmText: "Enviar",
+      onConfirm: async () => {
+        setSendingEmailTo(userId)
+        try {
+          const { sendIndividualExpenseReportAction } = await import("@/app/actions/email")
+          const result = await sendIndividualExpenseReportAction(userId)
+
+          if (result.success) {
+            alertModal.open({
+              variant: "success",
+              message: result.message || "Relatório enviado com sucesso",
+            })
+          } else {
+            alertModal.open({
+              variant: "error",
+              message: result.error || "Erro ao enviar relatório",
+            })
+          }
+        } catch (error) {
+          console.error("Erro ao enviar relatório:", error)
+          alertModal.open({
+            variant: "error",
+            message: "Erro ao enviar relatório",
+          })
+        } finally {
+          setSendingEmailTo(null)
+        }
+      },
+    })
+  }
+
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -214,32 +285,17 @@ export function AdminUsers() {
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-2 sm:p-0">
       <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-custom-text-primary dark:text-custom-text-primary-dark">
-            Gerenciar Usuários
-          </h1>
-          <p className="text-sm text-custom-text-secondary dark:text-custom-text-secondary-dark">
-            Administre os usuários do sistema
-          </p>
-        </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            onClick={handleSendExpenseReport}
-            disabled={isLoading || isSendingEmails}
-            className="bg-custom-secondary hover:bg-custom-secondary-dark text-white w-full sm:w-auto"
-          >
-            {isSendingEmails ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Enviando...
-              </>
-            ) : (
-              <>
-                <Mail className="h-4 w-4 mr-2" />
-                Enviar Relatório
-              </>
-            )}
-          </Button>
+
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Users className="h-5 w-5" />
+            Lista de Usuários
+          </CardTitle>
           <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
             <DialogTrigger asChild>
               <Button
@@ -342,17 +398,7 @@ export function AdminUsers() {
                 </DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <Users className="h-5 w-5" />
-            Lista de Usuários
-          </CardTitle>
-          <CardDescription className="text-sm">Total de {users.length} usuários cadastrados</CardDescription>
+          </Dialog>          
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <div className="flex items-center space-x-2 mb-4">
@@ -385,6 +431,32 @@ export function AdminUsers() {
                       <p className="text-sm text-custom-text-secondary dark:text-custom-text-secondary-dark truncate">
                         {user.email}
                       </p>
+                      {loadingBalances ? (
+                        <p className="text-xs text-custom-text-secondary dark:text-custom-text-secondary-dark">
+                          Carregando saldo...
+                        </p>
+                      ) : userBalances[user.id] ? (
+                        <p
+                          className={`text-sm font-semibold ${
+                            userBalances[user.id].balance > 0
+                              ? "text-custom-error"
+                              : userBalances[user.id].balance < 0
+                                ? "text-custom-success"
+                                : "text-custom-text-secondary dark:text-custom-text-secondary-dark"
+                          }`}
+                        >
+                          Saldo:{" "}
+                          {userBalances[user.id].balance > 0
+                            ? `Devendo R$ ${userBalances[user.id].balance.toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                              })}`
+                            : userBalances[user.id].balance < 0
+                              ? `Crédito R$ ${Math.abs(userBalances[user.id].balance).toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                })}`
+                              : "Quitado"}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
@@ -407,6 +479,19 @@ export function AdminUsers() {
                     </div>
 
                     <div className="flex space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSendIndividualEmail(user.id, user.name)}
+                        disabled={isLoading || sendingEmailTo !== null || user.status !== "active"}
+                        title="Enviar relatório por email"
+                      >
+                        {sendingEmailTo === user.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
                       <Dialog open={editingUser?.id === user.id} onOpenChange={(open) => !open && setEditingUser(null)}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" onClick={() => openEditModal(user)} disabled={isLoading}>
@@ -501,18 +586,17 @@ export function AdminUsers() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-custom-error hover:text-custom-error-dark"
-                        disabled={isLoading}
-                        onClick={() =>
+                        onClick={() => {
                           alertModal.open({
                             variant: "warning",
                             title: "Excluir usuário",
-                            message: `Tem certeza que deseja excluir o usuário "${user.name}"? Esta ação não pode ser desfeita.`,
+                            message: `Tem certeza que deseja excluir o usuário ${user.name}?`,
                             showCancel: true,
                             confirmText: "Excluir",
-                            onConfirm: async () => handleDeleteUser(user.id),
+                            onConfirm: () => handleDeleteUser(user.id),
                           })
-                        }
+                        }}
+                        disabled={isLoading}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

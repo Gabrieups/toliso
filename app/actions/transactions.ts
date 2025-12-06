@@ -10,23 +10,6 @@ interface CustomShare {
   amount: string
 }
 
-// Helper function to calculate invoice period based on card closing date
-function getInvoicePeriodForCard(date: Date, closingDate: number): string {
-  const year = date.getFullYear()
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-
-  if (day >= closingDate) {
-    // Assign to next month
-    const nextMonth = month === 12 ? 1 : month + 1
-    const nextYear = month === 12 ? year + 1 : year
-    return `${nextYear}-${nextMonth.toString().padStart(2, "0")}`
-  } else {
-    // Assign to current month
-    return `${year}-${month.toString().padStart(2, "0")}`
-  }
-}
-
 export async function createTransactionAction(formData: FormData) {
   const currentUser = await getCurrentUser()
 
@@ -60,7 +43,7 @@ export async function createTransactionAction(formData: FormData) {
   }
 
   try {
-    // Buscar o cartão para obter o ID e a data de fechamento
+    // Buscar o cartão para obter o ID
     const cards = await cardService.getAll()
     const selectedCard = cards.find((card) => card.name === cardName)
 
@@ -144,16 +127,6 @@ export async function createTransactionAction(formData: FormData) {
     const monthsToCreate = isRecurring ? 12 : 1 // Criar 12 meses de despesas recorrentes
 
     const baseDate = customDate ? new Date(customDate) : new Date()
-
-    // Se sim, ajustar a data para o próximo período
-    const expenseDay = baseDate.getDate()
-    if (expenseDay >= selectedCard.closingDate) {
-      // A despesa será lançada no próximo período - não precisa ajustar a data,
-      // apenas o sistema vai calcular o período correto automaticamente
-      console.log(
-        `[v0] Despesa em ${baseDate.toISOString()} está após o dia de fechamento (${selectedCard.closingDate}). Será lançada no próximo período.`,
-      )
-    }
 
     // Criar transações para cada mês (se recorrente)
     for (let month = 0; month < monthsToCreate; month++) {
@@ -239,12 +212,6 @@ export async function createTransactionAction(formData: FormData) {
       message += ` para ${primaryUser.name}`
     }
 
-    const expensePeriod = getInvoicePeriodForCard(baseDate, selectedCard.closingDate)
-    const periodDate = new Date(`${expensePeriod}-01`)
-    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
-    const periodDisplay = `${monthNames[periodDate.getMonth()]}/${periodDate.getFullYear()}`
-    message += ` na fatura de ${periodDisplay}`
-
     return {
       success: true,
       transactions: createdTransactions,
@@ -303,6 +270,7 @@ export async function editTransactionAction(transactionId: string, formData: For
   const amount = Number.parseFloat((formData.get("amount") as string).replace(",", "."))
   const cardName = formData.get("card") as string
   const date = formData.get("date") as string
+  const targetUserId = formData.get("targetUserId") as string
 
   if (!title || !amount || !cardName) {
     return { error: "Título, valor e cartão são obrigatórios" }
@@ -320,7 +288,6 @@ export async function editTransactionAction(transactionId: string, formData: For
       return { error: "Transação não encontrada" }
     }
 
-    // Buscar o cartão para obter o ID
     const cards = await cardService.getAll()
     const selectedCard = cards.find((card) => card.name === cardName)
 
@@ -328,14 +295,77 @@ export async function editTransactionAction(transactionId: string, formData: For
       return { error: "Cartão não encontrado" }
     }
 
-    await transactionService.update(transactionId, {
+    let targetUser = null
+    if (targetUserId && targetUserId !== transaction.userId) {
+      targetUser = await userService.getById(targetUserId)
+      if (!targetUser) {
+        return { error: "Usuário não encontrado" }
+      }
+    }
+
+    if (transaction.installmentGroup) {
+      const installmentTransactions = await transactionService.getByInstallmentGroup(transaction.installmentGroup)
+
+      installmentTransactions.sort((a, b) => (a.currentInstallment || 0) - (b.currentInstallment || 0))
+
+      const firstInstallment = installmentTransactions[0]
+      if (!firstInstallment) {
+        return { error: "Parcelas não encontradas" }
+      }
+
+      const originalDate = new Date(firstInstallment.date)
+      const newDate = new Date(date)
+      const monthsDiff =
+        (newDate.getFullYear() - originalDate.getFullYear()) * 12 + (newDate.getMonth() - originalDate.getMonth())
+
+      for (const inst of installmentTransactions) {
+        const instDate = new Date(inst.date)
+        instDate.setMonth(instDate.getMonth() + monthsDiff)
+
+        const updates: any = {
+          title: `${title} (${inst.currentInstallment}/${inst.totalInstallments})`,
+          description: description || "",
+          amount,
+          cardId: selectedCard.id,
+          cardName: selectedCard.name,
+          date: instDate.toISOString(),
+        }
+
+        if (targetUser) {
+          updates.userId = targetUser.id
+          updates.userName = targetUser.name
+          updates.userEmail = targetUser.email
+        }
+
+        await transactionService.update(inst.id, updates)
+      }
+
+      revalidatePath("/")
+      revalidatePath("/dashboard")
+      revalidatePath("/invoices")
+
+      return {
+        success: true,
+        message: `${installmentTransactions.length} parcelas atualizadas com sucesso`,
+      }
+    }
+
+    const updates: any = {
       title,
       description: description || "",
       amount,
       cardId: selectedCard.id,
       cardName: selectedCard.name,
       date: date || transaction.date,
-    })
+    }
+
+    if (targetUser) {
+      updates.userId = targetUser.id
+      updates.userName = targetUser.name
+      updates.userEmail = targetUser.email
+    }
+
+    await transactionService.update(transactionId, updates)
 
     revalidatePath("/")
     revalidatePath("/dashboard")

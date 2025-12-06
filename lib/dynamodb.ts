@@ -375,6 +375,20 @@ export const transactionService = {
     return result.Items as Transaction[]
   },
 
+  async getByInstallmentGroup(installmentGroup: string) {
+    const result = await dynamodb.send(
+      new ScanCommand({
+        TableName: TABLES.TRANSACTIONS,
+        FilterExpression: "installmentGroup = :installmentGroup",
+        ExpressionAttributeValues: {
+          ":installmentGroup": installmentGroup,
+        },
+      }),
+    )
+
+    return (result.Items as Transaction[]) || []
+  },
+
   async update(id: string, updates: Partial<Omit<Transaction, "id" | "createdAt">>) {
     const now = new Date().toISOString()
 
