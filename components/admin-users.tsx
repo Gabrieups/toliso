@@ -60,12 +60,6 @@ export function AdminUsers() {
     loadUsers()
   }, [])
 
-  useEffect(() => {
-    if (users.length > 0) {
-      loadUserBalances()
-    }
-  }, [users])
-
   const loadUsers = async () => {
     setIsLoading(true)
     try {
@@ -77,25 +71,6 @@ export function AdminUsers() {
       console.error("Erro ao carregar usuários:", error)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const loadUserBalances = async () => {
-    setLoadingBalances(true)
-    try {
-      const { calculateUserBalance } = await import("@/app/actions/email")
-      const balances: Record<string, UserBalance> = {}
-
-      for (const user of users) {
-        const balance = await calculateUserBalance(user.id)
-        balances[user.id] = balance
-      }
-
-      setUserBalances(balances)
-    } catch (error) {
-      console.error("Erro ao carregar saldos:", error)
-    } finally {
-      setLoadingBalances(false)
     }
   }
 
@@ -189,43 +164,6 @@ export function AdminUsers() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleSendExpenseReport = async () => {
-    alertModal.open({
-      variant: "warning",
-      title: "Enviar relatórios",
-      message: "Deseja enviar o relatório de gastos para todos os usuários ativos?",
-      showCancel: true,
-      confirmText: "Enviar",
-      onConfirm: async () => {
-        setIsSendingEmails(true)
-        try {
-          const { sendExpenseReportAction } = await import("@/app/actions/email")
-          const result = await sendExpenseReportAction()
-
-          if (result.success) {
-            alertModal.open({
-              variant: "success",
-              message: result.message || "Relatórios enviados com sucesso",
-            })
-          } else {
-            alertModal.open({
-              variant: "error",
-              message: result.error || "Erro ao enviar relatórios",
-            })
-          }
-        } catch (error) {
-          console.error("Erro ao enviar relatórios:", error)
-          alertModal.open({
-            variant: "error",
-            message: "Erro ao enviar relatórios",
-          })
-        } finally {
-          setIsSendingEmails(false)
-        }
-      },
-    })
   }
 
   const handleSendIndividualEmail = async (userId: string, userName: string) => {
