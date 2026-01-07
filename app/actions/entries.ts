@@ -4,7 +4,7 @@ import { entryService } from "@/lib/dynamodb"
 import { getCurrentUser } from "./auth"
 import { revalidatePath } from "next/cache"
 
-export async function createEntryAction(formData: FormData) {
+export async function createEntryAction(formData: FormData, targetUserId?: string) {
   const currentUser = await getCurrentUser()
 
   if (!currentUser) {
@@ -23,11 +23,27 @@ export async function createEntryAction(formData: FormData) {
     return { error: "O valor deve ser maior que zero" }
   }
 
+  let userId = currentUser.id
+  let userName = currentUser.name
+  let userEmail = currentUser.email
+
+  if (currentUser.role === "admin" && targetUserId) {
+    const { userService } = await import("@/lib/dynamodb")
+    const users = await userService.getAll()
+    const targetUser = users.find((u) => u.id === targetUserId)
+
+    if (targetUser) {
+      userId = targetUser.id
+      userName = targetUser.name
+      userEmail = targetUser.email
+    }
+  }
+
   try {
     const newEntry = await entryService.create({
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userEmail: currentUser.email,
+      userId,
+      userName,
+      userEmail,
       title,
       description: description || "",
       amount,

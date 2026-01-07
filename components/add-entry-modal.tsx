@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,28 +15,64 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createEntryAction } from "@/app/actions/entries"
 import { useAlertModal } from "@/hooks/use-alert-modal"
+import { getActiveUsersAction } from "@/app/actions/transactions"
 
 interface AddEntryModalProps {
   isOpen: boolean
   onClose: () => void
   onAddEntry: () => void
+  isAdmin?: boolean
 }
 
-export function AddEntryModal({ isOpen, onClose, onAddEntry }: AddEntryModalProps) {
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
+export function AddEntryModal({ isOpen, onClose, onAddEntry, isAdmin = false }: AddEntryModalProps) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     amount: "",
+    targetUserId: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
   const alertModal = useAlertModal()
+
+  useEffect(() => {
+    if (isAdmin && isOpen) {
+      loadUsers()
+    }
+  }, [isAdmin, isOpen])
+
+  const loadUsers = async () => {
+    try {
+      const result = await getActiveUsersAction()
+      if (result.success && result.users) {
+        setUsers(result.users)
+      }
+    } catch (error) {
+      console.error("Erro ao carregar usuários:", error)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.title || !formData.amount) {
+      return
+    }
+
+    if (isAdmin && !formData.targetUserId) {
+      alertModal.open({
+        variant: "error",
+        message: "Selecione um usuário para registrar o pagamento",
+      })
       return
     }
 
@@ -48,12 +84,13 @@ export function AddEntryModal({ isOpen, onClose, onAddEntry }: AddEntryModalProp
     formDataObj.append("amount", formData.amount)
 
     try {
-      const result = await createEntryAction(formDataObj)
+      const result = await createEntryAction(formDataObj, isAdmin ? formData.targetUserId : undefined)
       if (result.success) {
         setFormData({
           title: "",
           description: "",
           amount: "",
+          targetUserId: "",
         })
         onAddEntry()
         onClose()
@@ -79,6 +116,7 @@ export function AddEntryModal({ isOpen, onClose, onAddEntry }: AddEntryModalProp
       title: "",
       description: "",
       amount: "",
+      targetUserId: "",
     })
     onClose()
   }
@@ -89,12 +127,36 @@ export function AddEntryModal({ isOpen, onClose, onAddEntry }: AddEntryModalProp
         <DialogHeader>
           <DialogTitle>Adicionar Pagamento</DialogTitle>
           <DialogDescription>
-            Registre um pagamento que será distribuído proporcionalmente entre seus cartões.
+            {isAdmin
+              ? "Registre um pagamento para um usuário."
+              : "Registre um pagamento que será distribuído proporcionalmente entre seus cartões."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            {isAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="targetUser">Usuário *</Label>
+                <Select
+                  value={formData.targetUserId}
+                  onValueChange={(value) => setFormData({ ...formData, targetUserId: value })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title">Título *</Label>
               <Input
