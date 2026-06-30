@@ -21,6 +21,7 @@ import {
   Receipt,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react"
 import { AddExpenseModal } from "@/components/add-expense-modal"
 import { AddEntryModal } from "@/components/add-entry-modal"
@@ -469,37 +470,50 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         </Alert>
       )}
 
-      <div className="flex items-center justify-center gap-2 py-2 w-full">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={navigateToPreviousPeriod}
-          disabled={isLastPeriod()}
-          className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
+      <div className="flex items-center justify-between gap-2 py-2 w-full">
+        <div className="flex items-center justify-center gap-2 flex-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={navigateToPreviousPeriod}
+            disabled={isLastPeriod()}
+            className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCalendarOpen(true)}
+            className="flex items-center gap-2 justify-center px-2 sm:px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 max-w-[280px]"
+          >
+            <Calendar className="h-4 w-4 text-custom-primary flex-shrink-0" />
+            <span className="font-medium text-xs sm:text-sm text-custom-text-primary dark:text-custom-text-primary-dark truncate">
+              {getSelectedPeriodDisplay()}
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={navigateToNextPeriod}
+            disabled={isFirstPeriod()}
+            className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
 
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsCalendarOpen(true)}
-          className="flex items-center gap-2 justify-center px-2 sm:px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 max-w-[280px]"
+          onClick={loadData}
+          disabled={isLoading}
+          title="Recarregar dados"
+          className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0 text-custom-text-secondary hover:text-custom-primary dark:text-custom-text-secondary-dark dark:hover:text-custom-primary"
         >
-          <Calendar className="h-4 w-4 text-custom-primary flex-shrink-0" />
-          <span className="font-medium text-xs sm:text-sm text-custom-text-primary dark:text-custom-text-primary-dark truncate">
-            {getSelectedPeriodDisplay()}
-          </span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={navigateToNextPeriod}
-          disabled={isFirstPeriod()}
-          className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
-        >
-          <ChevronRight className="h-5 w-5" />
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { entryService } from "@/lib/dynamodb"
 import { getCurrentUser } from "./auth"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, unstable_noStore as noStore } from "next/cache"
 
 export async function createEntryAction(formData: FormData, targetUserId?: string) {
   const currentUser = await getCurrentUser()
@@ -78,6 +78,7 @@ export async function deleteEntryAction(entryId: string) {
 }
 
 export async function getEntriesAction() {
+  noStore()
   const currentUser = await getCurrentUser()
 
   if (!currentUser) {

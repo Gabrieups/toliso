@@ -2,7 +2,7 @@
 
 import { cardService } from "@/lib/dynamodb"
 import { getCurrentUser } from "./auth"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, unstable_noStore as noStore } from "next/cache"
 
 export async function createCardAction(formData: FormData) {
   const currentUser = await getCurrentUser()
@@ -94,6 +94,7 @@ export async function deleteCardAction(cardId: string) {
 }
 
 export async function getCardsAction() {
+  noStore()
   try {
     const cards = await cardService.getAll()
     return { success: true, cards }

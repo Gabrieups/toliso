@@ -16,6 +16,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react"
 import { getInvoicesAction } from "@/app/actions/invoices"
 import { getCardsAction } from "@/app/actions/cards"
@@ -243,13 +244,25 @@ export function Invoices() {
             Visualize suas faturas por período (16º ao 15º) e gerencie pagamentos
           </p>
         </div>
-        <Button
-          onClick={() => setIsAddEntryModalOpen(true)}
-          className="bg-custom-primary hover:bg-custom-secondary-dark text-white w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Adicionar Pagamento
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={loadData}
+            disabled={isLoading}
+            title="Recarregar dados"
+            className="flex-shrink-0 text-custom-text-secondary hover:text-custom-primary dark:text-custom-text-secondary-dark dark:hover:text-custom-primary"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+          <Button
+            onClick={() => setIsAddEntryModalOpen(true)}
+            className="bg-custom-primary hover:bg-custom-secondary-dark text-white flex-1 sm:flex-none"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Pagamento
+          </Button>
+        </div>
       </div>
 
       {uniquePeriods.length > 0 && (
