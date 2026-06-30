@@ -13,7 +13,10 @@ const SyncContext = createContext<SyncContextType | null>(null)
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false)
+  // Callbacks e flag de syncing ficam em refs para não causar re-render
+  // que desmontaria os componentes e desregistraria os callbacks
   const callbacks = useRef<Record<string, () => Promise<void>>>({})
+  const isSyncingRef = useRef(false)
 
   const registerSyncCallback = useCallback((key: string, cb: () => Promise<void>) => {
     callbacks.current[key] = cb
@@ -24,15 +27,17 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const syncAll = useCallback(async () => {
-    if (isSyncing) return
+    if (isSyncingRef.current) return
+    isSyncingRef.current = true
     setIsSyncing(true)
     try {
       const all = Object.values(callbacks.current)
       await Promise.all(all.map((cb) => cb()))
     } finally {
+      isSyncingRef.current = false
       setIsSyncing(false)
     }
-  }, [isSyncing])
+  }, [])
 
   return (
     <SyncContext.Provider value={{ isSyncing, syncAll, registerSyncCallback, unregisterSyncCallback }}>
