@@ -2,8 +2,10 @@
 
 import { invoiceService } from "@/lib/dynamodb"
 import { getCurrentUser } from "./auth"
+import { unstable_noStore as noStore } from "next/cache"
 
 export async function getInvoicesAction() {
+  noStore()
   const currentUser = await getCurrentUser()
 
   if (!currentUser) {

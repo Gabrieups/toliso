@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useAlertModal } from "@/hooks/use-alert-modal"
+import { useSyncContext } from "@/contexts/sync-context"
 import { createUserAction, updateUserAction, deleteUserAction, getUsersAction } from "@/app/actions/users"
 import { getUsersExpensesAction, sendIndividualExpenseReportAction } from "@/app/actions/email"
 import { AddEntryModal } from "@/components/add-entry-modal"
@@ -121,16 +122,9 @@ export function AdminUsers() {
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod())
   const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false)
   const alertModal = useAlertModal()
+  const { registerSyncCallback, unregisterSyncCallback } = useSyncContext()
 
-  useEffect(() => {
-    loadUsers()
-  }, [])
-
-  useEffect(() => {
-    loadUsersExpenses()
-  }, [selectedPeriod])
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setIsLoading(true)
     try {
       const result = await getUsersAction()
@@ -143,7 +137,21 @@ export function AdminUsers() {
     } finally {
       setIsLoading(false)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
+
+  useEffect(() => {
+    loadUsersExpenses()
+  }, [selectedPeriod])
+
+  useEffect(() => {
+    registerSyncCallback("admin-users", loadUsers)
+    return () => unregisterSyncCallback("admin-users")
+  }, [registerSyncCallback, unregisterSyncCallback, loadUsers])
 
   const loadUsersExpenses = async () => {
     try {

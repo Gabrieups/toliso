@@ -11,7 +11,27 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger"
 import { ThemeProvider } from "@/contexts/theme-context"
+import { SyncProvider, useSyncContext } from "@/contexts/sync-context"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { RefreshCw } from "lucide-react"
+
+function SyncButton() {
+  const { syncAll, isSyncing } = useSyncContext()
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={syncAll}
+      disabled={isSyncing}
+      title="Sincronizar dados"
+      className="h-8 w-8 p-0 hover:bg-custom-success-light dark:hover:bg-custom-success-dark text-custom-text-secondary dark:text-custom-text-secondary-dark hover:text-custom-primary dark:hover:text-custom-primary"
+    >
+      <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+      <span className="sr-only">Sincronizar dados</span>
+    </Button>
+  )
+}
 
 export default function Page() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -145,27 +165,30 @@ export default function Page() {
       ) : !isAuthenticated ? (
         <LoginForm onLogin={handleLogin} />
       ) : (
-        <SidebarProvider defaultOpen={false}>
-          <AppSidebar
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLogout={handleLogout}
-            userRole={userRole}
-            userName={userName}
-          />
-          <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b border-custom-border dark:border-custom-border-dark bg-white dark:bg-custom-bg-dark">
-              <div className="flex items-center gap-2 px-4">
-                <CustomSidebarTrigger />
-                <Separator orientation="vertical" className="mr-2 h-4" />
-                <h1 className="text-lg font-semibold text-custom-text-primary dark:text-custom-text-primary-dark">
-                  {getPageTitle()}
-                </h1>
-              </div>
-            </header>
-            <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{renderCurrentPage()}</div>
-          </SidebarInset>
-        </SidebarProvider>
+        <SyncProvider>
+          <SidebarProvider defaultOpen={false}>
+            <AppSidebar
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              onLogout={handleLogout}
+              userRole={userRole}
+              userName={userName}
+            />
+            <SidebarInset>
+              <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b border-custom-border dark:border-custom-border-dark bg-white dark:bg-custom-bg-dark">
+                <div className="flex items-center gap-2 px-4 flex-1">
+                  <CustomSidebarTrigger />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
+                  <h1 className="text-lg font-semibold text-custom-text-primary dark:text-custom-text-primary-dark flex-1">
+                    {getPageTitle()}
+                  </h1>
+                  <SyncButton />
+                </div>
+              </header>
+              <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{renderCurrentPage()}</div>
+            </SidebarInset>
+          </SidebarProvider>
+        </SyncProvider>
       )}
     </ThemeProvider>
   )

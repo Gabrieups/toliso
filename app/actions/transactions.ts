@@ -2,7 +2,7 @@
 
 import { transactionService, cardService, userService } from "@/lib/dynamodb"
 import { getCurrentUser } from "./auth"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, unstable_noStore as noStore } from "next/cache"
 
 interface CustomShare {
   userId: string
@@ -382,6 +382,7 @@ export async function editTransactionAction(transactionId: string, formData: For
 }
 
 export async function getTransactionsAction() {
+  noStore()
   const currentUser = await getCurrentUser()
 
   if (!currentUser) {
@@ -404,6 +405,7 @@ export async function getTransactionsAction() {
 }
 
 export async function getActiveUsersAction() {
+  noStore()
   const currentUser = await getCurrentUser()
 
   if (!currentUser) {

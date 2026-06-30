@@ -3,7 +3,7 @@
 import type React from "react"
 import { useAlertModal } from "@/hooks/use-alert-modal"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,6 +16,7 @@ import { getTransactionsAction, deleteTransactionAction } from "@/app/actions/tr
 import { getEntriesAction, deleteEntryAction } from "@/app/actions/entries"
 import { getCardsAction } from "@/app/actions/cards"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useSyncContext } from "@/contexts/sync-context"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { PeriodCalendar } from "@/components/period-calendar"
 
@@ -67,12 +68,9 @@ export function Home({ onLogout, userRole }: HomeProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
+  const { registerSyncCallback, unregisterSyncCallback } = useSyncContext()
 
-  useEffect(() => {
-    loadData()
-  }, [userRole])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       const transactionsResult = await getTransactionsAction()
@@ -128,7 +126,16 @@ export function Home({ onLogout, userRole }: HomeProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [userRole])
+
+  useEffect(() => {
+    registerSyncCallback("home", loadData)
+    return () => unregisterSyncCallback("home")
+  }, [registerSyncCallback, unregisterSyncCallback, loadData])
 
   const getInvoicePeriod = (date: Date): { period: string; periodDisplay: string } => {
     const year = date.getFullYear()

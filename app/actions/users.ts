@@ -2,7 +2,7 @@
 
 import { userService } from "@/lib/dynamodb"
 import { getCurrentUser } from "./auth"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, unstable_noStore as noStore } from "next/cache"
 
 export async function createUserAction(formData: FormData) {
   const currentUser = await getCurrentUser()
@@ -94,6 +94,7 @@ export async function deleteUserAction(userId: string) {
 }
 
 export async function getUsersAction() {
+  noStore()
   const currentUser = await getCurrentUser()
 
   if (!currentUser || currentUser.role !== "admin") {

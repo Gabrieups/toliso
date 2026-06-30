@@ -1,7 +1,7 @@
 "use client"
 import { useAlertModal } from "@/hooks/use-alert-modal"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -43,6 +43,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label"
 import { PeriodCalendar } from "@/components/period-calendar"
 import type { Transaction } from "@/types/transaction"
+import { useSyncContext } from "@/contexts/sync-context"
 
 interface Entry {
   id: string
@@ -86,12 +87,9 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
+  const { registerSyncCallback, unregisterSyncCallback } = useSyncContext()
 
-  useEffect(() => {
-    loadData()
-  }, [userRole])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       const transactionsResult = await getTransactionsAction()
@@ -177,7 +175,16 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [userRole])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    registerSyncCallback("dashboard", loadData)
+    return () => unregisterSyncCallback("dashboard")
+  }, [registerSyncCallback, unregisterSyncCallback, loadData])
 
   const getInvoicePeriod = (date: Date): { period: string; periodDisplay: string } => {
     const year = date.getUTCFullYear()

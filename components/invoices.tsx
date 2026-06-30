@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { CardBrandIcon } from "@/components/card-brand-icon"
 import { useAlertModal } from "@/hooks/use-alert-modal"
 import { PeriodCalendar } from "@/components/period-calendar"
+import { useSyncContext } from "@/contexts/sync-context"
 
 interface Invoice {
   cardId: string
@@ -60,12 +61,9 @@ export function Invoices() {
   const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set())
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
+  const { registerSyncCallback, unregisterSyncCallback } = useSyncContext()
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       const [invoicesResult, cardsResult] = await Promise.all([getInvoicesAction(), getCardsAction()])
@@ -86,7 +84,16 @@ export function Invoices() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    registerSyncCallback("invoices", loadData)
+    return () => unregisterSyncCallback("invoices")
+  }, [registerSyncCallback, unregisterSyncCallback, loadData])
 
   const handleDeleteEntry = async (entryId: string) => {
     try {
