@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { LoginForm } from "@/components/login-form"
 import { Dashboard } from "@/components/dashboard"
 import { Home } from "@/components/home"
@@ -105,7 +105,9 @@ export default function Page() {
     setCurrentPage("home")
   }
 
-  const renderCurrentPage = () => {
+  // Memoizado para evitar remontagem dos componentes (e desregistro dos callbacks de sync)
+  // quando o SyncContext atualiza isSyncing
+  const currentPageElement = useMemo(() => {
     switch (currentPage) {
       case "home":
         return <Home onLogout={handleLogout} userRole={userRole} />
@@ -135,7 +137,8 @@ export default function Page() {
       default:
         return <Home onLogout={handleLogout} userRole={userRole} />
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, userRole])
 
   const getPageTitle = () => {
     switch (currentPage) {
@@ -185,7 +188,7 @@ export default function Page() {
                   <SyncButton />
                 </div>
               </header>
-              <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{renderCurrentPage()}</div>
+              <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{currentPageElement}</div>
             </SidebarInset>
           </SidebarProvider>
         </SyncProvider>
