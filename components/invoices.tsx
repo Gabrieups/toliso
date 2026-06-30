@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,6 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
 } from "lucide-react"
 import { getInvoicesAction } from "@/app/actions/invoices"
 import { getCardsAction } from "@/app/actions/cards"
@@ -26,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { CardBrandIcon } from "@/components/card-brand-icon"
 import { useAlertModal } from "@/hooks/use-alert-modal"
 import { PeriodCalendar } from "@/components/period-calendar"
+import { useSyncContext } from "@/contexts/sync-context"
 
 interface Invoice {
   cardId: string
@@ -61,12 +61,9 @@ export function Invoices() {
   const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set())
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
+  const { registerSyncCallback, unregisterSyncCallback } = useSyncContext()
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       const [invoicesResult, cardsResult] = await Promise.all([getInvoicesAction(), getCardsAction()])
@@ -87,7 +84,16 @@ export function Invoices() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    registerSyncCallback("invoices", loadData)
+    return () => unregisterSyncCallback("invoices")
+  }, [registerSyncCallback, unregisterSyncCallback, loadData])
 
   const handleDeleteEntry = async (entryId: string) => {
     try {
@@ -244,25 +250,13 @@ export function Invoices() {
             Visualize suas faturas por período (16º ao 15º) e gerencie pagamentos
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={loadData}
-            disabled={isLoading}
-            title="Recarregar dados"
-            className="flex-shrink-0 text-custom-text-secondary hover:text-custom-primary dark:text-custom-text-secondary-dark dark:hover:text-custom-primary"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-          <Button
-            onClick={() => setIsAddEntryModalOpen(true)}
-            className="bg-custom-primary hover:bg-custom-secondary-dark text-white flex-1 sm:flex-none"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Pagamento
-          </Button>
-        </div>
+        <Button
+          onClick={() => setIsAddEntryModalOpen(true)}
+          className="bg-custom-primary hover:bg-custom-secondary-dark text-white w-full sm:w-auto"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar Pagamento
+        </Button>
       </div>
 
       {uniquePeriods.length > 0 && (

@@ -1,7 +1,7 @@
 "use client"
 import { useAlertModal } from "@/hooks/use-alert-modal"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -21,7 +21,6 @@ import {
   Receipt,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
 } from "lucide-react"
 import { AddExpenseModal } from "@/components/add-expense-modal"
 import { AddEntryModal } from "@/components/add-entry-modal"
@@ -44,6 +43,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label"
 import { PeriodCalendar } from "@/components/period-calendar"
 import type { Transaction } from "@/types/transaction"
+import { useSyncContext } from "@/contexts/sync-context"
 
 interface Entry {
   id: string
@@ -87,12 +87,9 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const alertModal = useAlertModal()
+  const { registerSyncCallback, unregisterSyncCallback } = useSyncContext()
 
-  useEffect(() => {
-    loadData()
-  }, [userRole])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       const transactionsResult = await getTransactionsAction()
@@ -178,7 +175,16 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [userRole])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    registerSyncCallback("dashboard", loadData)
+    return () => unregisterSyncCallback("dashboard")
+  }, [registerSyncCallback, unregisterSyncCallback, loadData])
 
   const getInvoicePeriod = (date: Date): { period: string; periodDisplay: string } => {
     const year = date.getUTCFullYear()
@@ -470,50 +476,37 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         </Alert>
       )}
 
-      <div className="flex items-center justify-between gap-2 py-2 w-full">
-        <div className="flex items-center justify-center gap-2 flex-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={navigateToPreviousPeriod}
-            disabled={isLastPeriod()}
-            className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCalendarOpen(true)}
-            className="flex items-center gap-2 justify-center px-2 sm:px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 max-w-[280px]"
-          >
-            <Calendar className="h-4 w-4 text-custom-primary flex-shrink-0" />
-            <span className="font-medium text-xs sm:text-sm text-custom-text-primary dark:text-custom-text-primary-dark truncate">
-              {getSelectedPeriodDisplay()}
-            </span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={navigateToNextPeriod}
-            disabled={isFirstPeriod()}
-            className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
+      <div className="flex items-center justify-center gap-2 py-2 w-full">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={navigateToPreviousPeriod}
+          disabled={isLastPeriod()}
+          className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          onClick={loadData}
-          disabled={isLoading}
-          title="Recarregar dados"
-          className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0 text-custom-text-secondary hover:text-custom-primary dark:text-custom-text-secondary-dark dark:hover:text-custom-primary"
+          onClick={() => setIsCalendarOpen(true)}
+          className="flex items-center gap-2 justify-center px-2 sm:px-4 py-2 h-10 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 max-w-[280px]"
         >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          <Calendar className="h-4 w-4 text-custom-primary flex-shrink-0" />
+          <span className="font-medium text-xs sm:text-sm text-custom-text-primary dark:text-custom-text-primary-dark truncate">
+            {getSelectedPeriodDisplay()}
+          </span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={navigateToNextPeriod}
+          disabled={isFirstPeriod()}
+          className="h-10 w-10 p-0 flex items-center justify-center flex-shrink-0"
+        >
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
 

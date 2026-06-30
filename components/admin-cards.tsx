@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useAlertModal } from "@/hooks/use-alert-modal"
+import { useSyncContext } from "@/contexts/sync-context"
 import { createCardAction, updateCardAction, deleteCardAction, getCardsAction } from "@/app/actions/cards"
 import { CardBrandIcon } from "@/components/card-brand-icon"
 
@@ -51,14 +52,11 @@ export function AdminCards() {
     closingDate: 5,
   })
   const alertModal = useAlertModal()
+  const { registerSyncCallback, unregisterSyncCallback } = useSyncContext()
 
   const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1)
 
-  useEffect(() => {
-    loadCards()
-  }, [])
-
-  const loadCards = async () => {
+  const loadCards = useCallback(async () => {
     setIsLoading(true)
     try {
       const result = await getCardsAction()
@@ -73,7 +71,16 @@ export function AdminCards() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadCards()
+  }, [loadCards])
+
+  useEffect(() => {
+    registerSyncCallback("admin-cards", loadCards)
+    return () => unregisterSyncCallback("admin-cards")
+  }, [registerSyncCallback, unregisterSyncCallback, loadCards])
 
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault()
