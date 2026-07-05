@@ -41,13 +41,26 @@ export default function Page() {
   const [userName, setUserName] = useState("")
 
   useEffect(() => {
+    const clearAuthState = () => {
+      localStorage.removeItem("isAuthenticated")
+      localStorage.removeItem("userEmail")
+      localStorage.removeItem("userName")
+      localStorage.removeItem("userRole")
+      setIsAuthenticated(false)
+      setUserName("")
+      setUserRole("user")
+      setIsLoading(false)
+    }
+
     const checkAuth = async () => {
       try {
         const response = await fetch("/api/auth/check", {
           method: "GET",
           credentials: "include",
+          cache: "no-store",
         })
 
+        // O servidor respondeu com sucesso e há uma sessão válida
         if (response.ok) {
           const userData = await response.json()
           if (userData.user) {
@@ -64,21 +77,33 @@ export default function Page() {
             return
           }
         }
+
+        // O servidor respondeu de forma definitiva que NÃO há sessão válida
+        // (ex.: 401 por sessão expirada). Não confiar no localStorage obsoleto,
+        // pois isso deixaria a UI "logada" enquanto as Server Actions falham,
+        // resultando em valores zerados. Forçar novo login.
+        if (response.status === 401 || response.status === 403) {
+          clearAuthState()
+          return
+        }
       } catch (error) {
-        // Removed console.log of error
+        // Apenas em caso de erro de rede real (servidor inacessível) usamos
+        // o localStorage como fallback otimista para não deslogar sem necessidade.
+        const authStatus = localStorage.getItem("isAuthenticated")
+        const storedUserName = localStorage.getItem("userName") || "Usuário"
+        const storedUserEmail = localStorage.getItem("userEmail") || ""
+        const storedUserRole = localStorage.getItem("userRole") || "user"
+        const isAdmin = storedUserEmail === "gabrielpaixao588@gmail.com" || storedUserRole === "admin"
+
+        setIsAuthenticated(authStatus === "true")
+        setUserName(storedUserName)
+        setUserRole(isAdmin ? "admin" : "user")
+        setIsLoading(false)
+        return
       }
 
-      const authStatus = localStorage.getItem("isAuthenticated")
-      const storedUserName = localStorage.getItem("userName") || "Usuário"
-      const storedUserEmail = localStorage.getItem("userEmail") || ""
-      const storedUserRole = localStorage.getItem("userRole") || "user"
-
-      const isAdmin = storedUserEmail === "gabrielpaixao588@gmail.com" || storedUserRole === "admin"
-
-      setIsAuthenticated(authStatus === "true")
-      setUserName(storedUserName)
-      setUserRole(isAdmin ? "admin" : "user")
-      setIsLoading(false)
+      // Qualquer outra resposta inesperada: tratar como não autenticado
+      clearAuthState()
     }
 
     checkAuth()

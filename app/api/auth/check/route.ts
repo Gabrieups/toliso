@@ -1,9 +1,13 @@
-import { getCurrentUser } from "@/app/actions/auth"
+import { refreshSession } from "@/app/actions/auth"
 import { NextResponse } from "next/server"
+
+// Evita que a resposta seja cacheada, garantindo verificação de sessão sempre fresca
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const user = await getCurrentUser()
+    // refreshSession renova o cookie (sessão deslizante) e retorna o usuário
+    const user = await refreshSession()
 
     if (!user) {
       return NextResponse.json({ user: null }, { status: 401 })
