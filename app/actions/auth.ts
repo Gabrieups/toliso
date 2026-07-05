@@ -4,12 +4,12 @@ import { userService } from "@/lib/dynamodb"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-export const SESSION_COOKIE_NAME = "user-session"
+const SESSION_COOKIE_NAME = "user-session"
 // Duração da sessão: 30 dias. A sessão é deslizante (rolling), ou seja,
 // é renovada a cada verificação de auth enquanto o usuário estiver ativo.
-export const SESSION_MAX_AGE = 60 * 60 * 24 * 30
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30
 
-export const SESSION_COOKIE_OPTIONS = {
+const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
