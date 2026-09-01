@@ -315,4 +315,4 @@ npm run typecheck    # core + web + mobile
 npm run web:build    # build de produção da web
 ```
 
-> No Windows, se o caminho do projeto tiver `&` e algum comando fora destes dois falhar com `'&&' foi inesperado neste momento.`, veja [Caminho do projeto com e comercial e o npm no Windows](#caminho-do-projeto-com-e-comercial-e-o-npm-no-windows).
+> No Windows, se o caminho do projeto tiver `&` e algum comando fora destes dois falhar com `'&&' foi inesperado neste momento.`, veja [Caminho do projeto com e comercial e o npm no Windows](#caminho-do-projeto-com-e-comercial-e-o-npm-no-windows)
