@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
-import { LinearGradient } from "expo-linear-gradient"
 import { Redirect } from "expo-router"
 import React, { useState } from "react"
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native"
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { ApiError } from "@/api/client"
 import { Button } from "@/components/Button"
@@ -48,7 +47,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.root}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.root}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xxl }]}
         keyboardShouldPersistTaps="handled"
@@ -71,16 +70,10 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.brand}>
-          <LinearGradient
-            colors={[theme.accent.primary, theme.accent.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.logo}
-          >
-            <Ionicons name="card" size={30} color="#FFFFFF" />
-          </LinearGradient>
-
-          <Text variant="display">To Liso</Text>
+          <View style={styles.brandRow}>
+            <Image source={require("../assets/logo-mark.png")} style={styles.logoMark} resizeMode="contain" />
+            <Text variant="display">To Liso</Text>
+          </View>
           <Text variant="body" tone="secondary" style={styles.tagline}>
             Controle de gastos no cartão, dividido com quem importa.
           </Text>
@@ -161,13 +154,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  logo: {
-    width: 68,
-    height: 68,
-    borderRadius: radius.lg,
+  brandRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  logoMark: {
+    width: 44,
+    height: 44,
   },
   tagline: {
     textAlign: "center",
