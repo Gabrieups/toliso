@@ -1,0 +1,297 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Sistema visual "liquid glass".
+ *
+ * O fundo é um gradiente com manchas de cor desfocadas; sobre ele flutuam
+ * superfícies translúcidas com `backdrop-blur`, borda-fio de 1px e um brilho no
+ * topo simulando a luz batendo na quina do painel. As cores de marca são as
+ * mesmas do aplicativo mobile, para que web e app pareçam o mesmo produto.
+ */
+
+@layer base {
+  :root {
+    /* Superfícies translúcidas — o `/` no final permite compor a opacidade. */
+    --background: 210 40% 98%;
+    --foreground: 205 55% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 205 55% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 205 55% 13%;
+
+    --primary: 145 63% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 174 72% 40%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 205 25% 94%;
+    --muted-foreground: 205 15% 42%;
+    --accent: 174 72% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 6 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 205 30% 88%;
+    --input: 205 30% 88%;
+    --ring: 145 63% 42%;
+    --radius: 1rem;
+
+    --chart-1: 145 63% 42%;
+    --chart-2: 174 72% 40%;
+    --chart-3: 6 72% 51%;
+    --chart-4: 205 15% 52%;
+    --chart-5: 205 55% 20%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 205 55% 13%;
+    --sidebar-primary: 145 63% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 205 25% 94%;
+    --sidebar-accent-foreground: 205 55% 13%;
+    --sidebar-border: 205 30% 88%;
+    --sidebar-ring: 145 63% 42%;
+
+    /* Tokens do vidro */
+    --glass-fill: 255 255 255 / 0.62;
+    --glass-fill-strong: 255 255 255 / 0.82;
+    --glass-fill-soft: 255 255 255 / 0.4;
+    --glass-border: 15 40 60 / 0.1;
+    --glass-border-strong: 15 40 60 / 0.16;
+    --glass-sheen: 255 255 255 / 0.9;
+    --glass-shadow: 27 58 75 / 0.12;
+
+    --backdrop-from: #f7fafc;
+    --backdrop-via: #eef5f2;
+    --backdrop-to: #e6f1f6;
+    --orb-primary: rgb(46 204 113 / 0.3);
+    --orb-secondary: rgb(26 188 156 / 0.24);
+    --orb-tertiary: rgb(74 168 255 / 0.2);
+  }
+
+  .dark {
+    --background: 215 45% 5%;
+    --foreground: 195 30% 96%;
+    --card: 213 30% 10%;
+    --card-foreground: 195 30% 96%;
+    --popover: 213 32% 9%;
+    --popover-foreground: 195 30% 96%;
+
+    --primary: 145 63% 47%;
+    --primary-foreground: 205 60% 6%;
+    --secondary: 174 65% 45%;
+    --secondary-foreground: 205 60% 6%;
+    --muted: 213 22% 17%;
+    --muted-foreground: 200 12% 66%;
+    --accent: 174 65% 45%;
+    --accent-foreground: 205 60% 6%;
+    --destructive: 6 78% 62%;
+    --destructive-foreground: 205 60% 6%;
+
+    --border: 210 20% 22%;
+    --input: 210 20% 22%;
+    --ring: 145 63% 47%;
+
+    --sidebar-background: 214 34% 8%;
+    --sidebar-foreground: 195 30% 96%;
+    --sidebar-primary: 145 63% 47%;
+    --sidebar-primary-foreground: 205 60% 6%;
+    --sidebar-accent: 213 22% 16%;
+    --sidebar-accent-foreground: 195 30% 96%;
+    --sidebar-border: 210 20% 20%;
+    --sidebar-ring: 145 63% 47%;
+
+    --glass-fill: 255 255 255 / 0.06;
+    --glass-fill-strong: 255 255 255 / 0.1;
+    --glass-fill-soft: 255 255 255 / 0.035;
+    --glass-border: 255 255 255 / 0.1;
+    --glass-border-strong: 255 255 255 / 0.18;
+    --glass-sheen: 255 255 255 / 0.22;
+    --glass-shadow: 0 0 0 / 0.5;
+
+    --backdrop-from: #05070d;
+    --backdrop-via: #0a1019;
+    --backdrop-to: #0c1a18;
+    --orb-primary: rgb(46 204 113 / 0.26);
+    --orb-secondary: rgb(26 188 156 / 0.2);
+    --orb-tertiary: rgb(74 168 255 / 0.16);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply text-foreground;
+    overflow-x: hidden;
+    background-color: var(--backdrop-from);
+    /* Gradiente de base + manchas de cor: é o que o `backdrop-blur` refrata. */
+    background-image:
+      radial-gradient(60rem 40rem at 12% -10%, var(--orb-primary), transparent 60%),
+      radial-gradient(50rem 36rem at 105% 22%, var(--orb-secondary), transparent 62%),
+      radial-gradient(55rem 42rem at -10% 92%, var(--orb-tertiary), transparent 60%),
+      linear-gradient(160deg, var(--backdrop-from) 0%, var(--backdrop-via) 52%, var(--backdrop-to) 100%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Valores monetários não "dançam" ao atualizar. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.25);
+  }
+
+  /* Barra de rolagem discreta, coerente com o tema. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+@layer components {
+  /*
+   * Superfície de vidro.
+   *
+   * O `::before` desenha o filete de luz no topo — sem ele o painel parece um
+   * retângulo translúcido qualquer, e não vidro.
+   */
+  .glass {
+    position: relative;
+    background-color: rgb(var(--glass-fill));
+    border: 1px solid rgb(var(--glass-border));
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 8px 32px -12px rgb(var(--glass-shadow));
+  }
+
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgb(var(--glass-sheen)), transparent);
+    pointer-events: none;
+  }
+
+  .glass-strong {
+    background-color: rgb(var(--glass-fill-strong));
+    border-color: rgb(var(--glass-border-strong));
+    backdrop-filter: blur(32px) saturate(190%);
+    -webkit-backdrop-filter: blur(32px) saturate(190%);
+  }
+
+  .glass-soft {
+    background-color: rgb(var(--glass-fill-soft));
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    box-shadow: none;
+  }
+
+  /* Painel sem o filete — para linhas de lista, onde o brilho vira ruído. */
+  .glass-flat::before {
+    display: none;
+  }
+
+  /* Realce ao passar o mouse em itens clicáveis de vidro. */
+  .glass-hover {
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .glass-hover:hover {
+    background-color: rgb(var(--glass-fill-strong));
+    border-color: rgb(var(--glass-border-strong));
+  }
+
+  /* Filete colorido no topo de um cartão (cor do cartão de crédito). */
+  .glass-accent::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background-color: var(--accent-color, hsl(var(--primary)));
+    border-radius: inherit;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  /* Faixa de rolagem horizontal sem barra visível (filtros, abas). */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* O wrapper do sidebar precisa ocupar a altura toda e não sobrepor o conteúdo. */
+.group\/sidebar-wrapper {
+  display: flex !important;
+  min-height: 100dvh !important;
+  width: 100% !important;
+}
+
+.group\/sidebar-wrapper > [data-sidebar="sidebar"] {
+  position: relative !important;
+  z-index: 10;
+}
+
+.group\/sidebar-wrapper > [data-sidebar="inset"] {
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.group\/sidebar-wrapper[data-state="collapsed"] > [data-sidebar="inset"] {
+  margin-left: 0 !important;
+}
+
+@media (min-width: 768px) {
+  .group\/sidebar-wrapper > [data-sidebar="inset"] {
+    margin-left: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

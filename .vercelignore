@@ -1,0 +1,12 @@
+# O deploy da Vercel serve apenas a plataforma web.
+# O aplicativo mobile nao precisa ser enviado, e mante-lo fora deixa o upload
+# e o build bem mais rapidos.
+apps/mobile
+
+# Artefatos locais
+**/node_modules
+**/.next
+**/.expo
+**/dist
+*.apk
+*.aab

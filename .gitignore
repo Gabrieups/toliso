@@ -1,14 +1,36 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
+.pnp
+.pnp.js
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
-# production
-/build
+# expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+apps/mobile/android/
+apps/mobile/ios/
+
+# builds
+build/
+*.apk
+*.aab
+*.ipa
+
+# packages build output
+packages/*/dist/
 
 # debug
 npm-debug.log*
@@ -17,11 +39,23 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env*
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
 
+# eas
+apps/mobile/eas-build-*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# os
+.DS_Store
+Thumbs.db
+
+# playwright mcp
+.playwright-mcp/
