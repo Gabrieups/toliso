@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const resend = getResend()
 
     if (!resend) {
-      return NextResponse.json({ error: "Envio de e-mail não configurado (RESEND_API_KEY ausente)" }, { status: 503 })
+      return NextResponse.json({ error: "Envio de e-mail não configurado (RESEND_API_KEY ausente)." }, { status: 503 })
     }
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
