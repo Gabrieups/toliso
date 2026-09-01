@@ -60,6 +60,12 @@
         "projectId": "74e63fe8-8c90-4231-8c3c-f95b810b2df3"
       }
     },
-    "owner": "hezo"
+    "owner": "hezo",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/74e63fe8-8c90-4231-8c3c-f95b810b2df3"
+    }
   }
 }
