@@ -80,7 +80,7 @@ export function ActionFab({ actions }: { actions: FabAction[] }) {
                 accessibilityState={{ disabled: action.disabled }}
                 style={{ opacity: action.disabled ? 0.45 : 1 }}
               >
-                <Glass variant="strong" corner="pill" elevation="floating" contentStyle={styles.action}>
+                <Glass solid corner="pill" elevation="floating" contentStyle={styles.action}>
                   <Ionicons name={action.icon} size={18} color={theme.accent.primary} />
                   <Text variant="caption">{action.label}</Text>
                 </Glass>

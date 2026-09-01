@@ -91,3 +91,10 @@ export interface RegisterPushPayload {
   platform: "android" | "ios" | "web"
   deviceName?: string
 }
+
+/** Payload aceito por `POST /api/v1/reports/send`. */
+export interface SendReportPayload {
+  userId: string
+  /** Periodo `YYYY-MM`. Sem isso, usa o periodo vigente. */
+  period?: string
+}

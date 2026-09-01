@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { Redirect } from "expo-router"
 import React, { useEffect, useMemo, useState } from "react"
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native"
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { ApiError } from "@/api/client"
-import { usersApi, type AdminUser } from "@/api/endpoints"
+import { reportsApi, usersApi, type AdminUser } from "@/api/endpoints"
 import { useAlert } from "@/components/AlertProvider"
 import { Button } from "@/components/Button"
 import { Chip } from "@/components/Chip"
@@ -19,7 +19,14 @@ import { useAuth } from "@/state/auth"
 import { useData } from "@/state/data"
 import { useTheme } from "@/theme/ThemeProvider"
 import { radius, spacing } from "@/theme/tokens"
-import { formatCurrency, getInitials, isInPeriod, getCurrentPeriod, sumAmount } from "@toliso/core"
+import {
+  formatCurrency,
+  getCurrentPeriod,
+  getInitials,
+  getPeriodDisplay,
+  isInPeriod,
+  sumAmount,
+} from "@toliso/core"
 
 interface FormState {
   name: string
@@ -53,6 +60,7 @@ export default function AdminUsersScreen() {
   const [isFormOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [error, setError] = useState<string | null>(null)
+  const [sendingReportId, setSendingReportId] = useState<string | null>(null)
 
   const period = getCurrentPeriod()
 
@@ -156,6 +164,30 @@ export default function AdminUsersScreen() {
     }
   }
 
+  const handleSendReport = (target: AdminUser) => {
+    alert.show({
+      variant: "warning",
+      title: "Enviar relatório",
+      message: `Deseja enviar o relatório de gastos de ${getPeriodDisplay(period)} para ${target.name}?`,
+      showCancel: true,
+      confirmText: "Enviar",
+      onConfirm: async () => {
+        setSendingReportId(target.id)
+        try {
+          const result = await reportsApi.send({ userId: target.id, period })
+          alert.show({ variant: "success", message: result.message })
+        } catch (caught) {
+          alert.show({
+            variant: "error",
+            message: caught instanceof ApiError ? caught.message : "Erro ao enviar relatório",
+          })
+        } finally {
+          setSendingReportId(null)
+        }
+      },
+    })
+  }
+
   const handleDelete = (target: AdminUser) => {
     alert.confirmDelete(
       `Excluir ${target.name}? Os lançamentos já registrados permanecem no histórico.`,
@@ -239,6 +271,13 @@ export default function AdminUsersScreen() {
                     </View>
 
                     <View style={styles.rowActions}>
+                      <IconButton
+                        icon="paper-plane-outline"
+                        color={theme.accent.primary}
+                        onPress={() => handleSendReport(item)}
+                        label={`Enviar relatório para ${item.name}`}
+                        busy={sendingReportId === item.id}
+                      />
                       <IconButton icon="pencil-outline" color={theme.accent.info} onPress={() => openEdit(item)} label={`Editar ${item.name}`} />
                       {item.id !== currentUser?.id ? (
                         <IconButton
@@ -373,21 +412,24 @@ function IconButton({
   color,
   onPress,
   label,
+  busy,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   color: string
   onPress: () => void
   label: string
+  busy?: boolean
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={busy ? undefined : onPress}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled: busy }}
       style={({ pressed }) => [styles.iconButton, { backgroundColor: `${color}1F`, opacity: pressed ? 0.6 : 1 }]}
     >
-      <Ionicons name={icon} size={16} color={color} />
+      {busy ? <ActivityIndicator size="small" color={color} /> : <Ionicons name={icon} size={16} color={color} />}
     </Pressable>
   )
 }

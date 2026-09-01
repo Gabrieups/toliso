@@ -26,6 +26,8 @@ export interface ThemeTokens {
   backdrop: [string, string, string]
   /** Manchas de cor desfocadas que dão o efeito "liquid". */
   orbs: { primary: string; secondary: string; tertiary: string }
+  /** Gradiente sólido dos formulários — fundo opaco, sem transparência. */
+  surface: [string, string]
   /** Preenchimento das superfícies de vidro. */
   glass: {
     fill: string
@@ -68,19 +70,20 @@ export interface ThemeTokens {
 
 const dark: ThemeTokens = {
   mode: "dark",
-  backdrop: ["#05070D", "#0A1019", "#0C1A18"],
+  backdrop: ["#222224", "#191A1C", "#313233"],
   orbs: {
-    primary: "rgba(46, 204, 113, 0.30)",
-    secondary: "rgba(26, 188, 156, 0.22)",
-    tertiary: "rgba(74, 168, 255, 0.16)",
+    primary: "rgba(88, 214, 151, 0.50)",
+    secondary: "rgba(64, 210, 199, 0.42)",
+    tertiary: "rgba(90, 168, 235, 0.36)",
   },
+  surface: ["#26282B", "#1C2320"],
   glass: {
-    fill: "rgba(255, 255, 255, 0.06)",
-    fillStrong: "rgba(255, 255, 255, 0.10)",
-    fillSoft: "rgba(255, 255, 255, 0.035)",
-    border: "rgba(255, 255, 255, 0.10)",
-    borderStrong: "rgba(255, 255, 255, 0.18)",
-    highlight: "rgba(255, 255, 255, 0.22)",
+    fill: "rgba(255, 255, 255, 0.30)",
+    fillStrong: "rgba(255, 255, 255, 0.42)",
+    fillSoft: "rgba(255, 255, 255, 0.20)",
+    border: "rgba(255, 255, 255, 0.20)",
+    borderStrong: "rgba(255, 255, 255, 0.28)",
+    highlight: "rgba(255, 255, 255, 0.26)",
     shadow: "#000000",
   },
   text: {
@@ -113,12 +116,13 @@ const dark: ThemeTokens = {
 
 const light: ThemeTokens = {
   mode: "light",
-  backdrop: ["#F7FAFC", "#EEF5F2", "#E6F1F6"],
+  backdrop: ["#F8F8F8", "#F5F5F5", "#F2F2F2"],
   orbs: {
-    primary: "rgba(46, 204, 113, 0.28)",
-    secondary: "rgba(26, 188, 156, 0.22)",
-    tertiary: "rgba(74, 168, 255, 0.18)",
+    primary: "rgba(88, 214, 151, 0.42)",
+    secondary: "rgba(64, 210, 199, 0.36)",
+    tertiary: "rgba(90, 168, 235, 0.30)",
   },
+  surface: ["#FFFFFF", "#F1F9F5"],
   glass: {
     fill: "rgba(255, 255, 255, 0.58)",
     fillStrong: "rgba(255, 255, 255, 0.78)",

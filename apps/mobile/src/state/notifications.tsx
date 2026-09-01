@@ -1,4 +1,3 @@
-import * as Notifications from "expo-notifications"
 import { useRouter } from "expo-router"
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { Platform } from "react-native"
@@ -6,11 +5,13 @@ import { pushApi } from "@/api/endpoints"
 import { useAuth } from "./auth"
 import { useData } from "./data"
 import {
+  addNotificationResponseListener,
   areNotificationsEnabled,
   registerForPush,
   scheduleInvoiceReminders,
   setNotificationsEnabled,
 } from "@/utils/notifications"
+import type * as NotificationsModule from "expo-notifications"
 
 /**
  * Liga as notificações ao ciclo de vida do app:
@@ -24,7 +25,7 @@ interface NotificationsContextValue {
   enabled: boolean
   /** Token do Expo, ou `null` em emulador / sem permissão. */
   pushToken: string | null
-  permission: Notifications.PermissionStatus | null
+  permission: NotificationsModule.PermissionStatus | null
   scheduledCount: number
   setEnabled: (enabled: boolean) => Promise<void>
   /** Reaplica permissão + registro. Usado pelo botão de Ajustes. */
@@ -40,7 +41,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const [enabled, setEnabledState] = useState(true)
   const [pushToken, setPushToken] = useState<string | null>(null)
-  const [permission, setPermission] = useState<Notifications.PermissionStatus | null>(null)
+  const [permission, setPermission] = useState<NotificationsModule.PermissionStatus | null>(null)
   const [scheduledCount, setScheduledCount] = useState(0)
 
   const registeredTokenRef = useRef<string | null>(null)
@@ -86,15 +87,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // Toque na notificação leva direto para a tela relacionada.
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    return addNotificationResponseListener((response) => {
       const screen = response.notification.request.content.data?.screen
 
       if (typeof screen === "string" && screen.startsWith("/")) {
         router.push(screen as never)
       }
     })
-
-    return () => subscription.remove()
   }, [router])
 
   const setEnabled = useCallback(

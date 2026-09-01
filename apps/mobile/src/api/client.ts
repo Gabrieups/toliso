@@ -1,15 +1,13 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import Constants from "expo-constants"
 
 /**
  * Cliente HTTP da API `/api/v1` servida pela plataforma web.
  *
- * A URL base vem de `app.json` (`extra.apiUrl`) e pode ser sobrescrita em
- * tempo de execução pela tela de Ajustes — indispensável para apontar o app
- * para uma máquina local durante o desenvolvimento.
+ * A URL base vem de `app.json` (`extra.apiUrl`) e sempre aponta para a
+ * instalação de produção — o app não permite trocar de servidor em tempo de
+ * execução.
  */
 
-const BASE_URL_KEY = "@toliso/api-url"
 const REQUEST_TIMEOUT_MS = 20000
 
 function defaultBaseUrl(): string {
@@ -17,30 +15,8 @@ function defaultBaseUrl(): string {
   return (configured ?? "http://localhost:3000").replace(/\/+$/, "")
 }
 
-let baseUrl = defaultBaseUrl()
+const baseUrl = defaultBaseUrl()
 let authToken: string | null = null
-
-/** Carrega a URL salva pelo usuário, se houver. Chamado na inicialização. */
-export async function loadBaseUrl(): Promise<string> {
-  const stored = await AsyncStorage.getItem(BASE_URL_KEY)
-  if (stored) baseUrl = stored.replace(/\/+$/, "")
-  return baseUrl
-}
-
-export function getBaseUrl(): string {
-  return baseUrl
-}
-
-export async function setBaseUrl(url: string): Promise<void> {
-  baseUrl = url.trim().replace(/\/+$/, "")
-  await AsyncStorage.setItem(BASE_URL_KEY, baseUrl)
-}
-
-export async function resetBaseUrl(): Promise<string> {
-  baseUrl = defaultBaseUrl()
-  await AsyncStorage.removeItem(BASE_URL_KEY)
-  return baseUrl
-}
 
 export function setAuthToken(token: string | null): void {
   authToken = token

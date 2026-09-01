@@ -8,6 +8,7 @@ import { Glass } from "./Glass"
 import { Text } from "./Text"
 import { useTheme } from "@/theme/ThemeProvider"
 import { radius, spacing } from "@/theme/tokens"
+import { IS_EXPO_GO } from "@/utils/expoGo"
 
 export interface SheetProps {
   visible: boolean
@@ -58,7 +59,14 @@ export function Sheet({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.root}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fechar">
-          <BlurView intensity={theme.blur.modal} tint={theme.blurTint} style={StyleSheet.absoluteFill} />
+          {IS_EXPO_GO ? null : (
+            <BlurView
+              intensity={theme.blur.modal}
+              tint={theme.blurTint}
+              experimentalBlurMethod="dimezisBlurView"
+              style={StyleSheet.absoluteFill}
+            />
+          )}
           <View style={[StyleSheet.absoluteFill, styles.scrim]} />
         </Pressable>
 
@@ -68,10 +76,9 @@ export function Sheet({
           pointerEvents="box-none"
         >
           <Glass
-            variant="strong"
+            solid
             corner="xl"
             elevation="floating"
-            intensity={theme.blur.modal}
             style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
           >
             <View style={[styles.grabber, { backgroundColor: theme.glass.borderStrong }]} />

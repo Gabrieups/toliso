@@ -1,18 +1,16 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { Pressable, ScrollView, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { ApiError, getBaseUrl, resetBaseUrl, setBaseUrl } from "@/api/client"
+import { ApiError } from "@/api/client"
 import { pushApi } from "@/api/endpoints"
 import { useAlert } from "@/components/AlertProvider"
 import { Button } from "@/components/Button"
 import { Chip } from "@/components/Chip"
-import { Field } from "@/components/Field"
 import { Glass } from "@/components/Glass"
 import { PageHeader } from "@/components/PageHeader"
 import { Segmented } from "@/components/Segmented"
-import { Sheet } from "@/components/Sheet"
 import { Text } from "@/components/Text"
 import { ToggleRow } from "@/components/Toggle"
 import { useAuth } from "@/state/auth"
@@ -23,7 +21,7 @@ import { radius, spacing } from "@/theme/tokens"
 import { formatDateTime, getInitials } from "@toliso/core"
 import { sendLocalTestNotification } from "@/utils/notifications"
 
-/** Ajustes: conta, aparência, notificações, administração e servidor. */
+/** Ajustes: conta, aparência, notificações e administração. */
 export default function SettingsScreen() {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -34,13 +32,7 @@ export default function SettingsScreen() {
   const { preference, setPreference } = useThemeControls()
   const notifications = useNotifications()
 
-  const [isServerOpen, setServerOpen] = useState(false)
-  const [serverUrl, setServerUrl] = useState("")
   const [isTesting, setTesting] = useState(false)
-
-  useEffect(() => {
-    setServerUrl(getBaseUrl())
-  }, [isServerOpen])
 
   const handleTestNotification = async () => {
     setTesting(true)
@@ -69,23 +61,6 @@ export default function SettingsScreen() {
     }
   }
 
-  const handleSaveServer = async () => {
-    const trimmed = serverUrl.trim()
-
-    if (!/^https?:\/\/.+/i.test(trimmed)) {
-      alert.show({ variant: "error", message: "Informe uma URL começando com http:// ou https://" })
-      return
-    }
-
-    await setBaseUrl(trimmed)
-    setServerOpen(false)
-    alert.show({
-      variant: "success",
-      message: "Servidor atualizado. Entre novamente para aplicar a mudança.",
-      onConfirm: logout,
-    })
-  }
-
   const handleLogout = () => {
     alert.show({
       variant: "warning",
@@ -99,7 +74,6 @@ export default function SettingsScreen() {
   }
 
   return (
-    <>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -233,12 +207,6 @@ export default function SettingsScreen() {
             onPress={() => refresh()}
             busy={isSyncing}
           />
-          <NavRow
-            icon="server-outline"
-            label="Servidor"
-            description={getBaseUrl()}
-            onPress={() => setServerOpen(true)}
-          />
         </Section>
 
         <Button label="Sair da conta" variant="glass" icon="log-out-outline" onPress={handleLogout} fullWidth />
@@ -247,40 +215,6 @@ export default function SettingsScreen() {
           To Liso · versão 1.0.0
         </Text>
       </ScrollView>
-
-      <Sheet
-        visible={isServerOpen}
-        onClose={() => setServerOpen(false)}
-        title="Endereço do servidor"
-        subtitle="Aponte o aplicativo para a sua instalação da plataforma web"
-        scrollable={false}
-        footer={
-          <>
-            <Button
-              label="Padrão"
-              variant="glass"
-              onPress={async () => {
-                const restored = await resetBaseUrl()
-                setServerUrl(restored)
-              }}
-              style={styles.flex}
-            />
-            <Button label="Salvar" onPress={handleSaveServer} style={styles.flex} />
-          </>
-        }
-      >
-        <Field
-          label="URL"
-          icon="globe-outline"
-          placeholder="https://toliso.exemplo.com.br"
-          value={serverUrl}
-          onChangeText={setServerUrl}
-          autoCapitalize="none"
-          keyboard="url"
-          hint="Sem barra no final. Ao salvar, será necessário entrar novamente."
-        />
-      </Sheet>
-    </>
   )
 }
 

@@ -70,7 +70,7 @@ export function AppSidebar({ currentPage, onPageChange, onLogout, userRole, user
 
   return (
     <SidebarClickOutside>
-      <Sidebar variant="inset" collapsible="offcanvas" className="border-none bg-transparent" {...props}>
+      <Sidebar collapsible="offcanvas" className="border-none bg-transparent" {...props}>
         <SidebarHeader>
           <div className="flex items-center gap-3 px-2 py-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-glass">

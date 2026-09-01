@@ -8,6 +8,7 @@ import { Glass } from "./Glass"
 import { Text } from "./Text"
 import { useTheme } from "@/theme/ThemeProvider"
 import { spacing } from "@/theme/tokens"
+import { IS_EXPO_GO } from "@/utils/expoGo"
 
 export type AlertVariant = "info" | "success" | "error" | "warning"
 
@@ -121,7 +122,14 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
       <Modal visible={options !== null} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
         <View style={styles.root}>
           <Pressable style={StyleSheet.absoluteFill} onPress={options?.showCancel ? close : undefined}>
-            <BlurView intensity={theme.blur.modal} tint={theme.blurTint} style={StyleSheet.absoluteFill} />
+            {IS_EXPO_GO ? null : (
+              <BlurView
+                intensity={theme.blur.modal}
+                tint={theme.blurTint}
+                experimentalBlurMethod="dimezisBlurView"
+                style={StyleSheet.absoluteFill}
+              />
+            )}
             <View style={[StyleSheet.absoluteFill, styles.scrim]} />
           </Pressable>
 

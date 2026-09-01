@@ -4,6 +4,7 @@ import React from "react"
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native"
 import { useTheme } from "@/theme/ThemeProvider"
 import { radius } from "@/theme/tokens"
+import { IS_EXPO_GO } from "@/utils/expoGo"
 
 type Elevation = "flat" | "raised" | "floating"
 type Variant = "default" | "strong" | "soft"
@@ -20,6 +21,11 @@ export interface GlassProps {
   intensity?: number
   /** Filete colorido no topo — usado para identificar o cartão da fatura. */
   accentColor?: string
+  /**
+   * Fundo sólido (gradiente opaco) em vez de translúcido — para formulários,
+   * onde ler o que está atrás do vidro atrapalha os campos.
+   */
+  solid?: boolean
 }
 
 /**
@@ -38,6 +44,7 @@ export function Glass({
   elevation = "raised",
   intensity,
   accentColor,
+  solid = false,
 }: GlassProps) {
   const theme = useTheme()
 
@@ -49,16 +56,32 @@ export function Glass({
     <View
       style={[
         styles.container,
-        { borderRadius: radius[corner], borderColor, backgroundColor: fill },
+        { borderRadius: radius[corner], borderColor, backgroundColor: solid ? theme.surface[1] : fill },
         elevationStyle(elevation, theme.glass.shadow),
         style,
       ]}
     >
-      <BlurView
-        intensity={intensity ?? theme.blur.card}
-        tint={theme.blurTint}
-        style={[StyleSheet.absoluteFill, { borderRadius: radius[corner] }]}
-      />
+      {solid ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={theme.surface}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[StyleSheet.absoluteFill, { borderRadius: radius[corner] }]}
+        />
+      ) : IS_EXPO_GO ? null : (
+        // No Expo Go em Android o blur real não está disponível (ver
+        // `IS_EXPO_GO`) e o `BlurView` sem o modo experimental cai para um
+        // tom translúcido próprio — que soma com o `backgroundColor` acima e
+        // deixa a superfície visivelmente mais escura. Melhor nem montar o
+        // `BlurView` nesse caso e confiar só no preenchimento do tema.
+        <BlurView
+          intensity={intensity ?? theme.blur.card}
+          tint={theme.blurTint}
+          experimentalBlurMethod="dimezisBlurView"
+          style={[StyleSheet.absoluteFill, { borderRadius: radius[corner] }]}
+        />
+      )}
 
       {/* Brilho superior: só o topo da superfície reflete a luz. */}
       <LinearGradient
@@ -100,10 +123,12 @@ function elevationStyle(elevation: Elevation, shadowColor: string): ViewStyle {
       shadowRadius: floating ? 28 : 18,
       shadowOffset: { width: 0, height: floating ? 14 : 8 },
     },
-    android: {
-      elevation: floating ? 12 : 5,
-      shadowColor,
-    },
+    // `elevation` no Android soma um retângulo de sombra atrás da view; com um
+    // fundo translúcido (como o vidro), esse retângulo aparece como um
+    // quadrado mais opaco por trás do conteúdo — mais visível quanto mais
+    // colorido for o fundo atrás. Sem solução limpa que preserve a
+    // translucidez, então o Android fica sem a sombra elevada.
+    android: {},
     default: {},
   }) as ViewStyle
 }

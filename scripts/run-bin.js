@@ -26,12 +26,14 @@ if (!moduleId) {
 }
 
 // Remove o nome do módulo do argv, mantendo o formato que qualquer CLI espera:
-// [node, "caminho do script", ...args reais]. `require.resolve` já usa como
-// base o diretório deste arquivo, então funciona tanto se o pacote estiver
-// içado na raiz do monorepo quanto instalado local ao workspace.
+// [node, "caminho do script", ...args reais].
 process.argv.splice(2, 1)
 
-const resolved = require.resolve(moduleId)
+// `require.resolve` sem `paths` só sobe a partir da pasta deste arquivo
+// (raiz/scripts), então não acha um pacote que o npm decidiu instalar local
+// ao workspace em vez de içar pra raiz. Somar `process.cwd()` — a pasta do
+// workspace que chamou o script via `npm run` — cobre os dois casos.
+const resolved = require.resolve(moduleId, { paths: [process.cwd(), __dirname] })
 process.argv[1] = resolved
 
 require(resolved)

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
-import { BlurView } from "expo-blur"
+import { LinearGradient } from "expo-linear-gradient"
 import { Redirect, Tabs } from "expo-router"
 import React from "react"
-import { Platform, StyleSheet, View } from "react-native"
+import { StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useAuth } from "@/state/auth"
 import { useTheme } from "@/theme/ThemeProvider"
@@ -37,12 +37,12 @@ export default function TabsLayout() {
           {
             bottom: insets.bottom + spacing.sm,
             borderColor: theme.glass.borderStrong,
-            backgroundColor: Platform.OS === "android" ? theme.glass.fillStrong : theme.glass.fill,
+            backgroundColor: theme.surface[1],
           },
         ],
         tabBarBackground: () => (
           <View style={styles.barBackground}>
-            <BlurView intensity={theme.blur.bar} tint={theme.blurTint} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={theme.surface} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           </View>
         ),
       }}

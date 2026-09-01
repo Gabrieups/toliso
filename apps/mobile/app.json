@@ -48,17 +48,18 @@
           "imageWidth": 180
         }
       ],
-      "expo-font",
-      "expo-status-bar"
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "apiUrl": "https://toliso.hezo.dev.br",
+      "router": {},
       "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
+        "projectId": "74e63fe8-8c90-4231-8c3c-f95b810b2df3"
       }
-    }
+    },
+    "owner": "hezo"
   }
 }

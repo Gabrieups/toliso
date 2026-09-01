@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store"
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { ApiError, loadBaseUrl, setAuthToken } from "@/api/client"
+import { ApiError, setAuthToken } from "@/api/client"
 import { authApi } from "@/api/endpoints"
 import type { PublicUser } from "@toliso/core"
 
@@ -69,8 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const restore = async () => {
       try {
-        await loadBaseUrl()
-
         const [token, storedUser] = await Promise.all([
           SecureStore.getItemAsync(TOKEN_KEY),
           SecureStore.getItemAsync(USER_KEY),

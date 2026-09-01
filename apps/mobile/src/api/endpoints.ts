@@ -10,6 +10,7 @@ import {
   type PaymentBlock,
   type PublicUser,
   type RegisterPushPayload,
+  type SendReportPayload,
   type Transaction,
   type UpdateTransactionPayload,
   type UserPayload,
@@ -94,6 +95,12 @@ export const usersApi = {
     request<{ success: true }>(API_ROUTES.user(id), { method: "PATCH", body: payload }),
 
   remove: (id: string) => request<{ success: true }>(API_ROUTES.user(id), { method: "DELETE" }),
+}
+
+export const reportsApi = {
+  /** Envia por e-mail o relatório de gastos do usuário no período informado. */
+  send: (payload: SendReportPayload) =>
+    request<{ success: true; message: string }>(API_ROUTES.report, { method: "POST", body: payload }),
 }
 
 export const pushApi = {
