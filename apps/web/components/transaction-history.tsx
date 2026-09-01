@@ -74,7 +74,7 @@ export function TransactionHistory({
           <li
             key={transaction.id}
             /* A faixa colorida à esquerda identifica o cartão sem competir com o valor. */
-            className="glass glass-flat glass-hover animate-fade-in-up relative overflow-hidden rounded-lg pl-1"
+            className="glass-row glass-hover list-row-cv animate-fade-in-up relative overflow-hidden rounded-lg pl-1"
           >
             <span
               aria-hidden

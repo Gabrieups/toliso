@@ -55,7 +55,7 @@ export function EntryHistory({ entries, onDeleteEntry, showUserInfo = false }: E
       {entries.map((entry) => (
         <li
           key={entry.id}
-          className="glass glass-flat glass-hover animate-fade-in-up relative overflow-hidden rounded-lg pl-1"
+          className="glass-row glass-hover list-row-cv animate-fade-in-up relative overflow-hidden rounded-lg pl-1"
         >
           <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-primary" />
 

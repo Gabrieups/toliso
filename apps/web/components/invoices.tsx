@@ -225,7 +225,7 @@ export function Invoices() {
                     {block.entries.map((entry) => (
                       <div
                         key={entry.id}
-                        className="glass glass-soft glass-flat flex items-center gap-3 rounded-md p-3"
+                        className="glass-row-soft list-row-cv flex items-center gap-3 rounded-md p-3"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{entry.title}</p>
@@ -334,7 +334,7 @@ export function Invoices() {
                       {invoice.transactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="glass glass-soft glass-flat flex items-start gap-3 rounded-md p-3"
+                          className="glass-row-soft list-row-cv flex items-start gap-3 rounded-md p-3"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{transaction.title}</p>

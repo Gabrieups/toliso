@@ -203,7 +203,7 @@ export default function Page() {
                 Cabeçalho fixo em vidro: o conteúdo desliza por baixo dele, o que
                 mantém o título e o botão de sincronizar sempre acessíveis.
               */}
-              <header className="glass glass-strong sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 rounded-none border-x-0 border-t-0 px-4">
+              <header className="glass glass-strong sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 rounded-none border-x-0 border-t-0 px-4 [will-change:transform]">
                 <CustomSidebarTrigger />
                 <div className="min-w-0 flex-1">
                   <h1 className="truncate text-base font-semibold leading-tight">{pageMeta.title}</h1>
