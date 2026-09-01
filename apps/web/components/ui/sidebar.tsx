@@ -323,7 +323,11 @@ const SidebarInset = React.forwardRef<
       ref={ref}
       className={cn(
         // Transparente para deixar o gradiente do body aparecer sob o conteudo.
-        "relative flex min-h-svh flex-1 flex-col bg-transparent",
+        // min-w-0 evita que o item flex recuse encolher abaixo da largura
+        // intrínseca do conteúdo, o que empurra a tela inteira para a
+        // direita no iOS Safari (outros navegadores mascaram isso com o
+        // overflow-x: hidden do body, o iOS não).
+        "relative flex min-h-svh min-w-0 flex-1 flex-col bg-transparent",
         "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))]",
         className
       )}

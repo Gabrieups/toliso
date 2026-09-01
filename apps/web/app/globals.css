@@ -307,34 +307,6 @@
   }
 }
 
-/* O wrapper do sidebar precisa ocupar a altura toda e não sobrepor o conteúdo. */
-.group\/sidebar-wrapper {
-  display: flex !important;
-  min-height: 100dvh !important;
-  width: 100% !important;
-}
-
-.group\/sidebar-wrapper > [data-sidebar="sidebar"] {
-  position: relative !important;
-  z-index: 10;
-}
-
-.group\/sidebar-wrapper > [data-sidebar="inset"] {
-  flex: 1 !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
-}
-
-.group\/sidebar-wrapper[data-state="collapsed"] > [data-sidebar="inset"] {
-  margin-left: 0 !important;
-}
-
-@media (min-width: 768px) {
-  .group\/sidebar-wrapper > [data-sidebar="inset"] {
-    margin-left: 0 !important;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
