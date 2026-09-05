@@ -90,3 +90,16 @@ export function invoiceDueNotification(params: {
     data: { kind: "invoice-due" satisfies NotificationKind, screen: "/(tabs)/invoices", period: params.period },
   }
 }
+
+/** Aviso: a fatura venceu e continua em aberto. */
+export function invoiceOverdueNotification(params: {
+  cardName: string
+  period: string
+  balance: number
+}): NotificationContent {
+  return {
+    title: `Fatura do ${params.cardName} venceu`,
+    body: `Saldo devedor de ${formatCurrency(params.balance)} em aberto — ${getPeriodDisplay(params.period, { includeRange: false })}.`,
+    data: { kind: "invoice-overdue" satisfies NotificationKind, screen: "/(tabs)/invoices", period: params.period },
+  }
+}

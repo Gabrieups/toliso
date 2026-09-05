@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages/core ../../package.json ../../package-lock.json"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages/core ../../package.json ../../package-lock.json",
+  "crons": [
+    {
+      "path": "/api/v1/cron/invoice-reminders",
+      "schedule": "0 12 * * *"
+    }
+  ]
 }
