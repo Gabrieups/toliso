@@ -19,5 +19,5 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   if (props.widgetAction === "WIDGET_DELETED") return
 
   const summary = await readSpendingSummaryWithFallback()
-  props.renderWidget(React.createElement(SpendingWidget, { summary }))
+  props.renderWidget(React.createElement(SpendingWidget, { summary, width: props.widgetInfo.width }))
 }

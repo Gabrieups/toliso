@@ -2,10 +2,11 @@ import { Stack } from "expo-router"
 import * as SplashScreen from "expo-splash-screen"
 import { StatusBar } from "expo-status-bar"
 import React, { useEffect } from "react"
-import { StyleSheet, View } from "react-native"
+import { StyleSheet } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { AlertProvider } from "@/components/AlertProvider"
+import { CoinsSplash } from "@/components/CoinsSplash"
 import { ScreenBackground } from "@/components/Screen"
 import { AuthProvider, useAuth } from "@/state/auth"
 import { DataProvider } from "@/state/data"
@@ -35,8 +36,11 @@ export default function RootLayout() {
 }
 
 /**
- * Esconde a splash somente quando tema e sessão já foram lidos do disco —
- * assim o app nunca pisca a tela de login para quem já está autenticado.
+ * A splash nativa (estática, obrigatória) esconde assim que o JS sobe — quem
+ * assume a partir daí é a `CoinsSplash`, animada, até tema e sessão serem
+ * lidos do disco. Isso evita que o usuário fique olhando pra uma imagem
+ * parada enquanto o app inicializa, sem arriscar piscar a tela de login para
+ * quem já está autenticado.
  */
 function RootNavigator() {
   const theme = useTheme()
@@ -46,11 +50,11 @@ function RootNavigator() {
   const isReady = isThemeReady && !isRestoring
 
   useEffect(() => {
-    if (isReady) SplashScreen.hideAsync().catch(() => undefined)
-  }, [isReady])
+    SplashScreen.hideAsync().catch(() => undefined)
+  }, [])
 
   if (!isReady) {
-    return <View style={[styles.root, { backgroundColor: theme.backdrop[0] }]} />
+    return <CoinsSplash />
   }
 
   return (

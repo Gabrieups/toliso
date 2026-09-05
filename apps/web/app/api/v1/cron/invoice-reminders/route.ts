@@ -47,10 +47,12 @@ export async function GET(request: Request) {
   let notificationsSent = 0
 
   try {
-    const users = await userService.getActiveUsers()
-    usersChecked = users.length
+    // Só o admin paga a fatura de verdade — os demais usuários só acompanham
+    // a própria parte, então não precisam desse lembrete.
+    const admins = (await userService.getActiveUsers()).filter((user) => user.role === "admin")
+    usersChecked = admins.length
 
-    for (const user of users) {
+    for (const user of admins) {
       const { invoices } = await invoiceService.generateInvoices(user.id)
 
       for (const invoice of invoices) {

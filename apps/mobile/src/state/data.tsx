@@ -100,7 +100,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           cacheSpendingSummary(widgetSummary).catch(() => undefined)
           requestWidgetUpdate({
             widgetName: "SpendingWidget",
-            renderWidget: () => <SpendingWidget summary={widgetSummary} />,
+            renderWidget: (info) => <SpendingWidget summary={widgetSummary} width={info.width} />,
           }).catch(() => undefined)
         }
       } catch (caught) {

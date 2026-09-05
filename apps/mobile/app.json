@@ -57,8 +57,12 @@
               "name": "SpendingWidget",
               "label": "To Liso — Gastos",
               "description": "Gasto, pago e a pagar no período atual",
-              "minWidth": "250dp",
+              "minWidth": "110dp",
               "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "320dp",
+              "maxResizeHeight": "250dp",
               "resizeMode": "horizontal|vertical",
               "updatePeriodMillis": 1800000
             }
