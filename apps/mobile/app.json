@@ -48,7 +48,23 @@
           "imageWidth": 180
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "SpendingWidget",
+              "label": "To Liso — Gastos",
+              "description": "Gasto, pago e a pagar no período atual",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

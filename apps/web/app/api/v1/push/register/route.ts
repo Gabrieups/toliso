@@ -32,8 +32,10 @@ export async function POST(request: Request) {
 
     return json({ success: true })
   } catch (error) {
-    // A ausência da tabela não deve impedir o uso do aplicativo.
-    console.warn("[api] não foi possível registrar o token de push:", error)
+    // A ausência da tabela não deve impedir o uso do aplicativo, mas precisa
+    // ficar visível nos logs — silenciar isso como "warn" foi o que deixou o
+    // registro de push falhando sem ninguém perceber.
+    console.error("[api] não foi possível registrar o token de push:", error)
     return json({ success: true, warning: "Notificações push indisponíveis no servidor" })
   }
 }

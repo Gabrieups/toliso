@@ -1,8 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
-import { AppState } from "react-native"
+import { AppState, Platform } from "react-native"
+import { requestWidgetUpdate } from "react-native-android-widget"
 import { ApiError } from "@/api/client"
 import { dataApi, type AdminUser } from "@/api/endpoints"
+import { SpendingWidget } from "@/widgets/SpendingWidget"
+import { cacheSpendingSummary, computeSpendingSummary } from "@/widgets/spending-summary"
 import { useAuth } from "./auth"
 import type { CreditCard, Entry, Invoice, PaymentBlock, Transaction } from "@toliso/core"
 
@@ -91,6 +94,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         lastSyncRef.current = Date.now()
 
         AsyncStorage.setItem(cacheKey, JSON.stringify(next)).catch(() => undefined)
+
+        if (Platform.OS === "android" && user) {
+          const widgetSummary = computeSpendingSummary(next.transactions, next.entries, user.email)
+          cacheSpendingSummary(widgetSummary).catch(() => undefined)
+          requestWidgetUpdate({
+            widgetName: "SpendingWidget",
+            renderWidget: () => <SpendingWidget summary={widgetSummary} />,
+          }).catch(() => undefined)
+        }
       } catch (caught) {
         if (caught instanceof ApiError && caught.isAuthError) {
           await logout()
@@ -103,7 +115,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
       }
     },
-    [isAuthenticated, cacheKey, logout],
+    [isAuthenticated, cacheKey, logout, user],
   )
 
   // Carga inicial: mostra o cache imediatamente e sincroniza em seguida.
