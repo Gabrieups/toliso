@@ -27,6 +27,7 @@ export function Invoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [paymentBlocks, setPaymentBlocks] = useState<PaymentBlock[]>([])
   const [cards, setCards] = useState<string[]>([])
+  const [cardClosingDates, setCardClosingDates] = useState<Map<string, number>>(new Map())
   const [selectedCard, setSelectedCard] = useState<string>("all")
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() => getCurrentPeriod())
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false)
@@ -46,7 +47,9 @@ export function Invoices() {
       }
 
       if (cardsResult.success && cardsResult.cards) {
-        setCards(cardsResult.cards.filter((card: any) => card.status === "active").map((card: any) => card.name))
+        const activeCards = cardsResult.cards.filter((card: any) => card.status === "active")
+        setCards(activeCards.map((card: any) => card.name))
+        setCardClosingDates(new Map(activeCards.map((card: any) => [card.name, card.closingDate])))
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
@@ -131,7 +134,12 @@ export function Invoices() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PeriodBar periods={periods} selected={selectedPeriod} onSelect={setSelectedPeriod} />
+      <PeriodBar
+        periods={periods}
+        selected={selectedPeriod}
+        onSelect={setSelectedPeriod}
+        closingDate={selectedCard !== "all" ? cardClosingDates.get(selectedCard) : undefined}
+      />
 
       {/* Resumo do período: as três leituras que importam, lado a lado. */}
       <div className="glass grid grid-cols-3 divide-x divide-border/50 rounded-lg p-4">

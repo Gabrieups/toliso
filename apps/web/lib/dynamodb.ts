@@ -29,6 +29,11 @@ const client = new DynamoDBClient({
 
 export const dynamodb = DynamoDBDocumentClient.from(client)
 
+/** Mais recente primeiro — usado para ordenar despesas e pagamentos por quando foram incluídos. */
+function byCreatedAtDesc(a: { createdAt: string }, b: { createdAt: string }): number {
+  return b.createdAt.localeCompare(a.createdAt)
+}
+
 // Tabelas
 export const TABLES = {
   USERS: "usersTL",
@@ -193,7 +198,8 @@ export const cardService = {
         TableName: TABLES.CARDS,
       }),
     )
-    return result.Items as CreditCard[]
+    const cards = result.Items as CreditCard[]
+    return cards.sort((a, b) => a.name.localeCompare(b.name))
   },
 
   async getById(id: string) {
@@ -297,7 +303,7 @@ export const transactionService = {
       }),
     )
 
-    return result.Items as Transaction[]
+    return (result.Items as Transaction[]).sort(byCreatedAtDesc)
   },
 
   async getByUserId(userId: string) {
@@ -311,7 +317,7 @@ export const transactionService = {
       }),
     )
 
-    return result.Items as Transaction[]
+    return (result.Items as Transaction[]).sort(byCreatedAtDesc)
   },
 
   async getByInstallmentGroup(installmentGroup: string) {
@@ -437,7 +443,7 @@ export const entryService = {
         TableName: TABLES.ENTRIES,
       }),
     )
-    return result.Items as Entry[]
+    return (result.Items as Entry[]).sort(byCreatedAtDesc)
   },
 
   async getByUserId(userId: string) {
@@ -451,7 +457,7 @@ export const entryService = {
       }),
     )
 
-    return result.Items as Entry[]
+    return (result.Items as Entry[]).sort(byCreatedAtDesc)
   },
 
   async delete(id: string) {

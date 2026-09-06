@@ -11,6 +11,8 @@ interface PeriodBarProps {
   periods: string[]
   selected: string
   onSelect: (period: string) => void
+  /** Fechamento do cartão filtrado, se houver — sem isso o rótulo usa o dia 16 como aproximação genérica. */
+  closingDate?: number
 }
 
 /**
@@ -20,7 +22,7 @@ interface PeriodBarProps {
  * sem movimentação continuam clicáveis, só que apagados — o histórico inteiro
  * fica visível em vez de o usuário ter que adivinhar o que existe.
  */
-export function PeriodBar({ periods, selected, onSelect }: PeriodBarProps) {
+export function PeriodBar({ periods, selected, onSelect, closingDate }: PeriodBarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [displayYear, setDisplayYear] = useState(() => getYearFromPeriod(selected))
 
@@ -63,7 +65,7 @@ export function PeriodBar({ periods, selected, onSelect }: PeriodBarProps) {
         <PopoverTrigger asChild>
           <Button variant="ghost" className="h-9 min-w-0 flex-1 gap-2 px-2 text-xs sm:text-sm">
             <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-            <span className="truncate">{getPeriodDisplay(selected)}</span>
+            <span className="truncate">{getPeriodDisplay(selected, { closingDate })}</span>
           </Button>
         </PopoverTrigger>
 

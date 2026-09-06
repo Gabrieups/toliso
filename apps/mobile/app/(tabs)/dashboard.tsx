@@ -68,9 +68,21 @@ export default function DashboardScreen() {
     return Array.from(map, ([email, name]) => ({ email, name })).sort((a, b) => a.name.localeCompare(b.name))
   }, [transactions, entries])
 
+  // Cada cartão fecha num dia diferente — agrupar todas as despesas pelo
+  // fechamento padrão (dia 16) faz esse total divergir do total por cartão
+  // da tela de Faturas, que já usa o fechamento real de cada cartão.
+  const closingDateByCardId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const card of cards) map.set(card.id, card.closingDate)
+    return map
+  }, [cards])
+
   const periodTransactions = useMemo(
-    () => transactions.filter((transaction) => isInPeriod(transaction.date, period.selected)),
-    [transactions, period.selected],
+    () =>
+      transactions.filter((transaction) =>
+        isInPeriod(transaction.date, period.selected, { closingDate: closingDateByCardId.get(transaction.cardId) }),
+      ),
+    [transactions, period.selected, closingDateByCardId],
   )
   const periodEntries = useMemo(
     () => entries.filter((entry) => isInPeriod(entry.date, period.selected)),

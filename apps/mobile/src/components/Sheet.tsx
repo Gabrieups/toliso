@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
 import { BlurView } from "expo-blur"
-import React from "react"
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native"
+import React, { useEffect, useRef } from "react"
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native"
 import { KeyboardAvoidingView } from "react-native"
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Glass } from "./Glass"
 import { Text } from "./Text"
@@ -42,6 +43,23 @@ export function Sheet({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
 
+  const translateY = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (visible) translateY.setValue(0)
+  }, [visible, translateY])
+
+  const dragToClose = Gesture.Pan()
+    .onUpdate((event) => {
+      if (event.translationY > 0) translateY.setValue(event.translationY)
+    })
+    .onEnd((event) => {
+      if (event.translationY > 120 || event.velocityY > 800) {
+        onClose()
+      }
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start()
+    })
+
   const body = scrollable ? (
     <ScrollView
       style={{ maxHeight: `${maxHeightRatio * 100 - 22}%` }}
@@ -52,12 +70,12 @@ export function Sheet({
       {children}
     </ScrollView>
   ) : (
-    <View style={styles.scrollContent}>{children}</View>
+    <View style={[styles.scrollContent, { maxHeight: `${maxHeightRatio * 100 - 22}%` }]}>{children}</View>
   )
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.root}>
+      <GestureHandlerRootView style={styles.root}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fechar">
           {IS_EXPO_GO ? null : (
             <BlurView
@@ -71,44 +89,50 @@ export function Sheet({
         </Pressable>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardWrapper}
           pointerEvents="box-none"
         >
-          <Glass
-            solid
-            corner="xl"
-            elevation="floating"
-            style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
-          >
-            <View style={[styles.grabber, { backgroundColor: theme.glass.borderStrong }]} />
+          <Animated.View style={{ transform: [{ translateY }] }}>
+            <Glass
+              solid
+              corner="xl"
+              elevation="floating"
+              style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+            >
+              <GestureDetector gesture={dragToClose}>
+                <View style={styles.grabberArea} hitSlop={{ top: 8, bottom: 8 }}>
+                  <View style={[styles.grabber, { backgroundColor: theme.glass.borderStrong }]} />
+                </View>
+              </GestureDetector>
 
-            <View style={styles.header}>
-              <View style={styles.headerText}>
-                <Text variant="heading">{title}</Text>
-                {subtitle ? (
-                  <Text variant="caption" tone="secondary">
-                    {subtitle}
-                  </Text>
-                ) : null}
+              <View style={styles.header}>
+                <View style={styles.headerText}>
+                  <Text variant="heading">{title}</Text>
+                  {subtitle ? (
+                    <Text variant="caption" tone="secondary">
+                      {subtitle}
+                    </Text>
+                  ) : null}
+                </View>
+                <Pressable
+                  onPress={onClose}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Fechar"
+                  style={[styles.closeButton, { backgroundColor: theme.tint.neutral }]}
+                >
+                  <Ionicons name="close" size={18} color={theme.text.secondary} />
+                </Pressable>
               </View>
-              <Pressable
-                onPress={onClose}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="Fechar"
-                style={[styles.closeButton, { backgroundColor: theme.tint.neutral }]}
-              >
-                <Ionicons name="close" size={18} color={theme.text.secondary} />
-              </Pressable>
-            </View>
 
-            {body}
+              {body}
 
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-          </Glass>
+              {footer ? <View style={styles.footer}>{footer}</View> : null}
+            </Glass>
+          </Animated.View>
         </KeyboardAvoidingView>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   )
 }
@@ -129,12 +153,16 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 0,
     paddingTop: spacing.md,
   },
+  grabberArea: {
+    width: "100%",
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.md,
+  },
   grabber: {
     width: 40,
     height: 4,
     borderRadius: radius.pill,
     alignSelf: "center",
-    marginBottom: spacing.md,
   },
   header: {
     flexDirection: "row",

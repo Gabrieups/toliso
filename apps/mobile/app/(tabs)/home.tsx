@@ -50,9 +50,21 @@ export default function HomeScreen() {
 
   const period = usePeriodNavigation([...myTransactions, ...myEntries])
 
+  // Cada cartão fecha num dia diferente — agrupar pelo fechamento padrão
+  // (dia 16) faz esse total divergir do total da tela de Faturas, que já usa
+  // o fechamento real de cada cartão.
+  const closingDateByCardId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const card of cards) map.set(card.id, card.closingDate)
+    return map
+  }, [cards])
+
   const periodTransactions = useMemo(
-    () => myTransactions.filter((transaction) => isInPeriod(transaction.date, period.selected)),
-    [myTransactions, period.selected],
+    () =>
+      myTransactions.filter((transaction) =>
+        isInPeriod(transaction.date, period.selected, { closingDate: closingDateByCardId.get(transaction.cardId) }),
+      ),
+    [myTransactions, period.selected, closingDateByCardId],
   )
   const periodEntries = useMemo(
     () => myEntries.filter((entry) => isInPeriod(entry.date, period.selected)),

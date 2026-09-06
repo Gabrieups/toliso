@@ -71,6 +71,7 @@ interface CardData {
   name: string
   color: string
   type: "visa" | "mastercard" | "elo" | "american-express"
+  closingDate: number
 }
 
 interface DashboardProps {
@@ -138,7 +139,13 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         setCards(
           cardsResult.cards
             .filter((card: any) => card.status === "active")
-            .map((card: any) => ({ id: card.id, name: card.name, color: card.color, type: card.type })),
+            .map((card: any) => ({
+              id: card.id,
+              name: card.name,
+              color: card.color,
+              type: card.type,
+              closingDate: card.closingDate,
+            })),
         )
       } else {
         setCards([])
@@ -162,9 +169,21 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
 
   const periods = useMemo(() => collectPeriods([...transactions, ...entries]), [transactions, entries])
 
+  // Cada cartão fecha num dia diferente — agrupar todas as despesas pelo
+  // fechamento padrão (dia 16) faz esse total divergir do total por cartão
+  // da tela de Faturas, que já usa o fechamento real de cada cartão.
+  const closingDateByCardName = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const card of cards) map.set(card.name, card.closingDate)
+    return map
+  }, [cards])
+
   const periodTransactions = useMemo(
-    () => transactions.filter((item) => isInPeriod(item.date, selectedPeriod)),
-    [transactions, selectedPeriod],
+    () =>
+      transactions.filter((item) =>
+        isInPeriod(item.date, selectedPeriod, { closingDate: closingDateByCardName.get(item.cardName) }),
+      ),
+    [transactions, selectedPeriod, closingDateByCardName],
   )
   const periodEntries = useMemo(
     () => entries.filter((item) => isInPeriod(item.date, selectedPeriod)),
