@@ -74,7 +74,7 @@ export function PeriodNavigator({
         visible={isPickerOpen}
         onClose={() => setPickerOpen(false)}
         title="Escolher período"
-        subtitle="Cada cartão pode fechar em um dia diferente"
+        subtitle="Ciclos de fatura do dia 16 ao dia 15"
         scrollable={false}
       >
         <View style={styles.yearRow}>

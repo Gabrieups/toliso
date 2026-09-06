@@ -59,19 +59,6 @@ export default function InvoicesScreen() {
 
   const index = periods.indexOf(selectedPeriod)
 
-  // Cada cartão fecha num dia diferente — só dá pra afirmar um ciclo
-  // específico (e usá-lo pro rótulo do período) quando um cartão está
-  // selecionado no filtro. Sem filtro, o rótulo fica genérico mesmo.
-  const filteredCard = cardFilter !== "all" ? activeCards.find((card) => card.name === cardFilter) : undefined
-
-  const periodDisplay = filteredCard
-    ? getPeriodDisplay(selectedPeriod, { closingDate: filteredCard.closingDate })
-    : getPeriodDisplay(selectedPeriod)
-
-  const headerSubtitle = filteredCard
-    ? `Fecha dia ${filteredCard.closingDate} · vence dia ${filteredCard.dueDate}`
-    : "Cada cartão pode fechar em um dia diferente"
-
   const filteredInvoices = useMemo(
     () =>
       invoices.filter(
@@ -145,7 +132,7 @@ export default function InvoicesScreen() {
       >
         <PageHeader
           title="Faturas"
-          subtitle={headerSubtitle}
+          subtitle="Ciclo do dia 16 ao dia 15"
           onSync={() => refresh()}
           isSyncing={isSyncing}
         />
@@ -153,7 +140,7 @@ export default function InvoicesScreen() {
         <PeriodNavigator
           selected={selectedPeriod}
           periods={periods}
-          display={periodDisplay}
+          display={getPeriodDisplay(selectedPeriod)}
           onSelect={setSelectedPeriod}
           onOlder={() => index < periods.length - 1 && setSelectedPeriod(periods[index + 1])}
           onNewer={() => index > 0 && setSelectedPeriod(periods[index - 1])}
