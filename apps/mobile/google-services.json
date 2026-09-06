@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1004729681856",
+    "project_id": "to-liso-a88e1",
+    "storage_bucket": "to-liso-a88e1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1004729681856:android:6392fa6041a2c431f32a25",
+        "android_client_info": {
+          "package_name": "br.dev.hezo.toliso"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPLheBaOhrHwc3lwby8nIwaAqxUbxucPI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -12,6 +12,7 @@
     ],
     "android": {
       "package": "br.dev.hezo.toliso",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
