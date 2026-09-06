@@ -34,7 +34,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params
 
   try {
-    await deleteTransaction(id)
+    await deleteTransaction(id, auth.user)
     return json({ success: true })
   } catch (error) {
     if (error instanceof OperationError) return apiError(error.message, error.status)

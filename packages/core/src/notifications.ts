@@ -9,6 +9,7 @@ import { getPeriodDisplay } from "./period"
 export type NotificationKind =
   | "expense-shared"
   | "expense-created-for-you"
+  | "expense-deleted"
   | "payment-registered"
   | "invoice-closing"
   | "invoice-due"
@@ -45,6 +46,20 @@ export function expenseForYouNotification(params: {
     title: "Despesa lançada na sua conta",
     body: `${params.authorName} registrou "${params.title}" (${formatCurrency(params.amount)}) no ${params.cardName}.`,
     data: { kind: "expense-created-for-you" satisfies NotificationKind, screen: "/(tabs)/home" },
+  }
+}
+
+/** Um usuário (não-admin) excluiu uma despesa — avisa o admin. */
+export function expenseDeletedNotification(params: {
+  authorName: string
+  title: string
+  amount: number
+  cardName: string
+}): NotificationContent {
+  return {
+    title: "Despesa excluída",
+    body: `${params.authorName} excluiu "${params.title}" (${formatCurrency(params.amount)}) do ${params.cardName}.`,
+    data: { kind: "expense-deleted" satisfies NotificationKind, screen: "/(tabs)/dashboard" },
   }
 }
 

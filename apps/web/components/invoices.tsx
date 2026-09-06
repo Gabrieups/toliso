@@ -370,7 +370,12 @@ export function Invoices() {
         </div>
       )}
 
-      <AddEntryModal isOpen={isAddEntryModalOpen} onClose={() => setIsAddEntryModalOpen(false)} onAddEntry={loadData} />
+      <AddEntryModal
+        isOpen={isAddEntryModalOpen}
+        onClose={() => setIsAddEntryModalOpen(false)}
+        onAddEntry={loadData}
+        isAdmin
+      />
     </div>
   )
 }

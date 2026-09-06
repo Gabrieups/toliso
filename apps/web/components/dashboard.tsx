@@ -474,7 +474,12 @@ export function Dashboard({ onLogout, currentPage = "dashboard", userRole }: Das
         </CardContent>
       </Card>
 
-      <AddEntryModal isOpen={isAddEntryModalOpen} onClose={() => setIsAddEntryModalOpen(false)} onAddEntry={loadData} />
+      <AddEntryModal
+        isOpen={isAddEntryModalOpen}
+        onClose={() => setIsAddEntryModalOpen(false)}
+        onAddEntry={loadData}
+        isAdmin={userRole === "admin"}
+      />
 
       {!hasNoCards ? (
         <AddExpenseModal

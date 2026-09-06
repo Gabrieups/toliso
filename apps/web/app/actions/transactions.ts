@@ -81,7 +81,7 @@ export async function deleteTransactionAction(transactionId: string) {
   }
 
   try {
-    await deleteTransaction(transactionId)
+    await deleteTransaction(transactionId, currentUser)
     revalidateAll()
     return { success: true as const }
   } catch (error) {

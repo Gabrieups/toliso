@@ -1,6 +1,7 @@
 import { cardService, transactionService, userService } from "@/lib/dynamodb"
 import { sendPushInBackground } from "@/lib/push"
 import {
+  expenseDeletedNotification,
   expenseForYouNotification,
   fromISODate,
   sharedExpenseNotification,
@@ -181,7 +182,7 @@ export async function createTransaction(
 }
 
 /** Exclui uma despesa. Parcelas e recorrências são removidas em grupo. */
-export async function deleteTransaction(transactionId: string): Promise<void> {
+export async function deleteTransaction(transactionId: string, currentUser: PublicUser): Promise<void> {
   const allTransactions = await transactionService.getAll()
   const transaction = allTransactions.find((item) => item.id === transactionId)
 
@@ -195,6 +196,23 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
     await transactionService.deleteByInstallmentGroup(transaction.installmentGroup)
   } else {
     await transactionService.delete(transactionId)
+  }
+
+  // Só avisa o admin quando é um usuário comum excluindo — o admin não
+  // precisa ser avisado da própria ação.
+  if (currentUser.role !== "admin") {
+    const admins = await userService.getActiveUsers()
+    const adminIds = admins.filter((admin) => admin.role === "admin").map((admin) => admin.id)
+
+    sendPushInBackground(
+      adminIds,
+      expenseDeletedNotification({
+        authorName: currentUser.name,
+        title: transaction.title,
+        amount: transaction.originalAmount ?? transaction.amount,
+        cardName: transaction.cardName,
+      }),
+    )
   }
 }
 
