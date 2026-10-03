@@ -6,6 +6,8 @@ import {
   ScanCommand,
   UpdateCommand,
   DeleteCommand,
+  TransactWriteCommand,
+  BatchWriteCommand,
 } from "@aws-sdk/lib-dynamodb"
 import {
   buildInvoices,
@@ -32,6 +34,46 @@ export const dynamodb = DynamoDBDocumentClient.from(client)
 /** Mais recente primeiro — usado para ordenar despesas e pagamentos por quando foram incluídos. */
 function byCreatedAtDesc(a: { createdAt: string }, b: { createdAt: string }): number {
   return b.createdAt.localeCompare(a.createdAt)
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size))
+  return chunks
+}
+
+/**
+ * Faz o Scan percorrer TODAS as paginas da tabela. O DynamoDB limita cada
+ * Scan a 1MB — um `dynamodb.send(new ScanCommand(...))` direto so retorna a
+ * primeira pagina e descarta o resto silenciosamente (sem erro, sem aviso).
+ * Qualquer tabela que passe de ~1MB (como `transactionsTL` ja passou) teria
+ * leituras incompletas sem isso.
+ */
+async function scanAll<T>(
+  params: Omit<ConstructorParameters<typeof ScanCommand>[0], "ExclusiveStartKey">,
+): Promise<T[]> {
+  const items: T[] = []
+  let exclusiveStartKey: Record<string, unknown> | undefined
+
+  do {
+    const result = await dynamodb.send(new ScanCommand({ ...params, ExclusiveStartKey: exclusiveStartKey }))
+    if (result.Items) items.push(...(result.Items as T[]))
+    exclusiveStartKey = result.LastEvaluatedKey
+  } while (exclusiveStartKey)
+
+  return items
+}
+
+async function batchDeleteByIds(tableName: string, ids: string[]): Promise<void> {
+  for (const batch of chunk(ids, 25)) {
+    await dynamodb.send(
+      new BatchWriteCommand({
+        RequestItems: {
+          [tableName]: batch.map((id) => ({ DeleteRequest: { Key: { id } } })),
+        },
+      }),
+    )
+  }
 }
 
 // Tabelas
@@ -84,18 +126,15 @@ export const userService = {
   },
 
   async getByEmail(email: string) {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.USERS,
-        FilterExpression: "email = :email",
-        ExpressionAttributeValues: {
-          ":email": email,
-        },
-      }),
-    )
+    const items = await scanAll<User>({
+      TableName: TABLES.USERS,
+      FilterExpression: "email = :email",
+      ExpressionAttributeValues: {
+        ":email": email,
+      },
+    })
 
-    const user = result.Items?.[0] as User | undefined
-    return user
+    return items[0]
   },
 
   async getById(id: string) {
@@ -110,29 +149,20 @@ export const userService = {
   },
 
   async getAll() {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.USERS,
-      }),
-    )
-    return result.Items as User[]
+    return scanAll<User>({ TableName: TABLES.USERS })
   },
 
   async getActiveUsers() {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.USERS,
-        FilterExpression: "#status = :status",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": "active",
-        },
-      }),
-    )
-
-    return result.Items as User[]
+    return scanAll<User>({
+      TableName: TABLES.USERS,
+      FilterExpression: "#status = :status",
+      ExpressionAttributeNames: {
+        "#status": "status",
+      },
+      ExpressionAttributeValues: {
+        ":status": "active",
+      },
+    })
   },
 
   async update(id: string, updates: Partial<Omit<User, "id" | "createdAt">>) {
@@ -193,12 +223,7 @@ export const cardService = {
   },
 
   async getAll() {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.CARDS,
-      }),
-    )
-    const cards = result.Items as CreditCard[]
+    const cards = await scanAll<CreditCard>({ TableName: TABLES.CARDS })
     return cards.sort((a, b) => a.name.localeCompare(b.name))
   },
 
@@ -270,68 +295,68 @@ export const transactionService = {
     return newTransaction
   },
 
+  /**
+   * Grava uma compra que vira varias linhas (parcelas, divisao entre usuarios,
+   * recorrencia). Cada lote de ate 100 linhas e gravado como uma transacao
+   * atomica do DynamoDB (tudo ou nada); se um lote seguinte falhar, os lotes
+   * ja gravados sao desfeitos, para nunca deixar a compra com linhas faltando.
+   */
   async createMultiple(transactions: Omit<Transaction, "id" | "createdAt" | "updatedAt">[]) {
     const now = new Date().toISOString()
-    const createdTransactions: Transaction[] = []
+    const createdTransactions: Transaction[] = transactions.map((transaction) => ({
+      ...transaction,
+      id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: now,
+      updatedAt: now,
+    }))
 
-    for (const transaction of transactions) {
-      const id = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const newTransaction: Transaction = {
-        ...transaction,
-        id,
-        createdAt: now,
-        updatedAt: now,
+    const batches = chunk(createdTransactions, 100)
+    const committedIds: string[] = []
+
+    try {
+      for (const batch of batches) {
+        await dynamodb.send(
+          new TransactWriteCommand({
+            TransactItems: batch.map((item) => ({
+              Put: { TableName: TABLES.TRANSACTIONS, Item: item },
+            })),
+          }),
+        )
+        committedIds.push(...batch.map((item) => item.id))
       }
-
-      await dynamodb.send(
-        new PutCommand({
-          TableName: TABLES.TRANSACTIONS,
-          Item: newTransaction,
-        }),
-      )
-
-      createdTransactions.push(newTransaction)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+    } catch (error) {
+      await batchDeleteByIds(TABLES.TRANSACTIONS, committedIds)
+      throw error
     }
+
     return createdTransactions
   },
 
   async getAll() {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.TRANSACTIONS,
-      }),
-    )
-
-    return (result.Items as Transaction[]).sort(byCreatedAtDesc)
+    const items = await scanAll<Transaction>({ TableName: TABLES.TRANSACTIONS })
+    return items.sort(byCreatedAtDesc)
   },
 
   async getByUserId(userId: string) {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.TRANSACTIONS,
-        FilterExpression: "userId = :userId OR contains(sharedWith, :userId)",
-        ExpressionAttributeValues: {
-          ":userId": userId,
-        },
-      }),
-    )
+    const items = await scanAll<Transaction>({
+      TableName: TABLES.TRANSACTIONS,
+      FilterExpression: "userId = :userId OR contains(sharedWith, :userId)",
+      ExpressionAttributeValues: {
+        ":userId": userId,
+      },
+    })
 
-    return (result.Items as Transaction[]).sort(byCreatedAtDesc)
+    return items.sort(byCreatedAtDesc)
   },
 
   async getByInstallmentGroup(installmentGroup: string) {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.TRANSACTIONS,
-        FilterExpression: "installmentGroup = :installmentGroup",
-        ExpressionAttributeValues: {
-          ":installmentGroup": installmentGroup,
-        },
-      }),
-    )
-
-    return (result.Items as Transaction[]) || []
+    return scanAll<Transaction>({
+      TableName: TABLES.TRANSACTIONS,
+      FilterExpression: "installmentGroup = :installmentGroup",
+      ExpressionAttributeValues: {
+        ":installmentGroup": installmentGroup,
+      },
+    })
   },
 
   async update(id: string, updates: Partial<Omit<Transaction, "id" | "createdAt">>) {
@@ -368,49 +393,33 @@ export const transactionService = {
   },
 
   async deleteByInstallmentGroup(installmentGroup: string) {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.TRANSACTIONS,
-        FilterExpression: "installmentGroup = :installmentGroup",
-        ExpressionAttributeValues: {
-          ":installmentGroup": installmentGroup,
-        },
-      }),
-    )
+    const items = await scanAll<Transaction>({
+      TableName: TABLES.TRANSACTIONS,
+      FilterExpression: "installmentGroup = :installmentGroup",
+      ExpressionAttributeValues: {
+        ":installmentGroup": installmentGroup,
+      },
+    })
 
-    if (result.Items) {
-      for (const item of result.Items) {
-        await dynamodb.send(
-          new DeleteCommand({
-            TableName: TABLES.TRANSACTIONS,
-            Key: { id: item.id },
-          }),
-        )
-      }
-    }
+    await batchDeleteByIds(
+      TABLES.TRANSACTIONS,
+      items.map((item) => item.id),
+    )
   },
 
   async deleteByRecurringGroup(recurringGroup: string) {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.TRANSACTIONS,
-        FilterExpression: "recurringGroup = :recurringGroup",
-        ExpressionAttributeValues: {
-          ":recurringGroup": recurringGroup,
-        },
-      }),
-    )
+    const items = await scanAll<Transaction>({
+      TableName: TABLES.TRANSACTIONS,
+      FilterExpression: "recurringGroup = :recurringGroup",
+      ExpressionAttributeValues: {
+        ":recurringGroup": recurringGroup,
+      },
+    })
 
-    if (result.Items) {
-      for (const item of result.Items) {
-        await dynamodb.send(
-          new DeleteCommand({
-            TableName: TABLES.TRANSACTIONS,
-            Key: { id: item.id },
-          }),
-        )
-      }
-    }
+    await batchDeleteByIds(
+      TABLES.TRANSACTIONS,
+      items.map((item) => item.id),
+    )
   },
 }
 
@@ -438,26 +447,20 @@ export const entryService = {
   },
 
   async getAll() {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.ENTRIES,
-      }),
-    )
-    return (result.Items as Entry[]).sort(byCreatedAtDesc)
+    const items = await scanAll<Entry>({ TableName: TABLES.ENTRIES })
+    return items.sort(byCreatedAtDesc)
   },
 
   async getByUserId(userId: string) {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.ENTRIES,
-        FilterExpression: "userId = :userId",
-        ExpressionAttributeValues: {
-          ":userId": userId,
-        },
-      }),
-    )
+    const items = await scanAll<Entry>({
+      TableName: TABLES.ENTRIES,
+      FilterExpression: "userId = :userId",
+      ExpressionAttributeValues: {
+        ":userId": userId,
+      },
+    })
 
-    return (result.Items as Entry[]).sort(byCreatedAtDesc)
+    return items.sort(byCreatedAtDesc)
   },
 
   async delete(id: string) {
@@ -526,27 +529,17 @@ export const pushTokenService = {
   },
 
   async getByUserId(userId: string) {
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.PUSH_TOKENS,
-        FilterExpression: "userId = :userId",
-        ExpressionAttributeValues: { ":userId": userId },
-      }),
-    )
-
-    return (result.Items as PushToken[]) ?? []
+    return scanAll<PushToken>({
+      TableName: TABLES.PUSH_TOKENS,
+      FilterExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":userId": userId },
+    })
   },
 
   async getByUserIds(userIds: string[]) {
     if (userIds.length === 0) return []
 
-    const result = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLES.PUSH_TOKENS,
-      }),
-    )
-
-    const tokens = (result.Items as PushToken[]) ?? []
+    const tokens = await scanAll<PushToken>({ TableName: TABLES.PUSH_TOKENS })
     const wanted = new Set(userIds)
     return tokens.filter((item) => wanted.has(item.userId))
   },
