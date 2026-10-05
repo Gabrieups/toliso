@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+
+# Segredos locais — nunca commitar. Use `dotnet user-secrets` ou variaveis de
+# ambiente pra configurar a connection string real do Supabase e o JWT secret.
+appsettings.Local.json
+appsettings.*.Local.json
