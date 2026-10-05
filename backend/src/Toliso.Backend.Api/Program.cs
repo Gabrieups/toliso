@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 using Toliso.Backend.Api.Auth.Login;
 using Toliso.Backend.Api.Auth.Me;
 using Toliso.Backend.Api.Cards.CreateCard;
@@ -106,25 +108,25 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 // --- Erros / OpenAPI -----------------------------------------------------
 builder.Services.AddExceptionHandler<ErrorHandlerMiddleware>();
 builder.Services.AddProblemDetails();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+
+const string BearerSecuritySchemeId = "Bearer";
+builder.Services.AddOpenApi(options =>
 {
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    options.AddDocumentTransformer((document, _, _) =>
     {
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-    });
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes[BearerSecuritySchemeId] = new OpenApiSecurityScheme
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" },
-            },
-            []
-        },
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+        };
+        document.SecurityRequirements.Add(new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = BearerSecuritySchemeId } }] = [],
+        });
+        return Task.CompletedTask;
     });
 });
 
@@ -134,8 +136,8 @@ app.UseExceptionHandler(_ => { });
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseAuthentication();
